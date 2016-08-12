@@ -29,7 +29,12 @@ public class Crawler implements AutoCloseable {
         try {
             Future<String> future = executor.submit(() -> UrlUtils.request(url));
             String result = future.get(timeout, TimeUnit.SECONDS);
-            return Optional.of(result);
+            if (!result.isEmpty()) {
+                return Optional.of(result);
+            } else {
+                LOGGER.info("crawled empty result for {}", url);
+                return Optional.empty();
+            }
         } catch (TimeoutException e) {
             LOGGER.warn("timeout exception: could not crawl {} in {} sec", url, timeout);
             return Optional.empty();

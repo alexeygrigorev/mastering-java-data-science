@@ -113,14 +113,6 @@
       <version>1.0.0-RC4</version>
     </dependency>
 
-
-    <!-- Tests -->
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit-dep</artifactId>
-      <version>4.8.1</version>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 
   <build>
