@@ -18,6 +18,10 @@ import com.google.common.collect.Lists;
 
 import chapter02.UrlUtils;
 
+/**
+ * DISCLAIMER: this class only serves as an example of how to extract HTML content from the web.
+ * Please consult DuckDuckGo's Terms and Conditions before using it. Use at your own risk. 
+ */
 public class DuckDuckGoScraper {
     private static final Logger LOGGER = LoggerFactory.getLogger(DuckDuckGoScraper.class);
 

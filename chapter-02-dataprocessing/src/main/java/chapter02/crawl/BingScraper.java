@@ -20,6 +20,10 @@ import com.google.common.collect.Lists;
 
 import chapter02.UrlUtils;
 
+/**
+ * DISCLAIMER: this class only serves as an example of how to extract HTML content from the web.
+ * Please consult Bing's Terms and Conditions before using it. Use at your own risk. 
+ */
 public class BingScraper {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BingScraper.class);
@@ -114,7 +118,7 @@ public class BingScraper {
     }
 
     public static void main(String[] args) throws Exception {
-        BingScraper bingCrawler = new BingScraper(4000, 6000);
+        BingScraper bingCrawler = new BingScraper(500, 2000);
 
         List<String> queries = FileUtils.readLines(new File("data/keywords.txt"), StandardCharsets.UTF_8);
         try (PrintWriter pw = new PrintWriter("bing-search-results.txt")) {
