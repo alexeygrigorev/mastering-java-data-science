@@ -1,0 +1,6 @@
+target/
+lib/
+.settings/
+.classpath
+.project
+.ipynb_checkpoints/
