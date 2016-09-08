@@ -67,7 +67,7 @@ public class DefaultPrediction {
         double[] cs = { 0.0001, 0.01, 0.5, 1.0, 5.0, 10.0, 50.0, 70, 100 };
         for (double c : cs) {
             int maxIterations = 100;
-            DescriptiveStatistics summary = JStat.crossValidate(folds, fold -> {
+            DescriptiveStatistics summary = JSAT.crossValidate(folds, fold -> {
                 LogisticRegressionDCD model = new LogisticRegressionDCD();
                 model.setMaxIterations(maxIterations);
                 model.setC(c);

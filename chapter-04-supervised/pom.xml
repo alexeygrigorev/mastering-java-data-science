@@ -21,11 +21,10 @@
       <url>http://jcenter.bintray.com</url>
     </repository>
     <repository>
-      <id>streamreasoning.org</id>
-      <url>http://streamreasoning.org/maven/</url>
+      <id>java-ds</id>
+      <url>https://raw.githubusercontent.com/alexeygrigorev/maven-repo/master/</url>
     </repository>
   </repositories>
-
 
   <dependencies>
     <!-- Logging -->
@@ -82,18 +81,31 @@
     <dependency>
       <groupId>com.github.haifengl</groupId>
       <artifactId>smile-core</artifactId>
-      <version>1.1.0</version>
+      <version>1.2.0</version>
     </dependency>
     <dependency>
       <groupId>com.edwardraff</groupId>
       <artifactId>JSAT</artifactId>
       <version>0.0.5</version>
     </dependency>
+
     <dependency>
       <groupId>net.sourceforge</groupId>
       <artifactId>javaml</artifactId>
       <version>0.1.7</version>
     </dependency>
+    <dependency>
+      <groupId>be.abeel</groupId>
+      <artifactId>ajt</artifactId>
+      <version>2.9</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.encog</groupId>
+      <artifactId>encog-core</artifactId>
+      <version>3.3.0</version>
+    </dependency>
+
 
     <!-- Tests -->
     <dependency>

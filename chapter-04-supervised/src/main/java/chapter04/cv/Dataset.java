@@ -1,5 +1,6 @@
 package chapter04.cv;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -10,8 +11,8 @@ import jsat.classifiers.DataPoint;
 import jsat.classifiers.DataPointPair;
 import jsat.linear.DenseVector;
 
-public class Dataset {
-    
+public class Dataset implements Serializable {
+
     private static long SEED = 1;
 
     private final double[][] X;

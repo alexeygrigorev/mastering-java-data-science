@@ -97,6 +97,9 @@ public class DefaultPredicionGbt {
 
         DataFrame<Object> importances = importanceDataFrame(modelDataFrame, gbt);
         System.out.println(importances.toString(15));
+        
+        
+        System.out.println();
     }
 
     public static List<Object> sumColumns(DataFrame<Object> df, String... columns) {

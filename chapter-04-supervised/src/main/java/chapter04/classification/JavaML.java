@@ -1,19 +1,21 @@
 package chapter04.classification;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import chapter04.cv.Dataset;
 import chapter04.cv.Fold;
-import jsat.classifiers.CategoricalResults;
-import jsat.classifiers.Classifier;
-import jsat.classifiers.DataPoint;
-import jsat.linear.DenseVector;
+import net.sf.javaml.classification.Classifier;
+import net.sf.javaml.core.DefaultDataset;
+import net.sf.javaml.core.DenseInstance;
+import net.sf.javaml.core.Instance;
 import smile.validation.AUC;
 
-public class JStat {
+public class JavaML {
 
     public static DescriptiveStatistics crossValidate(List<Fold> folds, Function<Dataset, Classifier> trainer) {
         double[] aucs = folds.parallelStream().mapToDouble(fold -> {
@@ -37,12 +39,23 @@ public class JStat {
         double[] result = new double[X.length];
 
         for (int i = 0; i < X.length; i++) {
-            DenseVector vector = new DenseVector(X[i]);
-            DataPoint point = new DataPoint(vector);
-            CategoricalResults out = model.classify(point);
-            result[i] = out.getProb(1);
+            DenseInstance point = new DenseInstance(X[i]);
+            Map<Object, Double> distribution = model.classDistribution(point);
+            result[i] = distribution.get(1);
         }
 
         return result;
+    }
+
+    public static net.sf.javaml.core.Dataset wrapDataset(Dataset train) {
+        double[][] X = train.getX();
+        int[] y = train.getYAsInt();
+
+        List<Instance> rows = new ArrayList<>(X.length);
+        for (int i = 0; i < X.length; i++) {
+            rows.add(new DenseInstance(X[i], y[i]));
+        }
+
+        return new DefaultDataset(rows);
     }
 }

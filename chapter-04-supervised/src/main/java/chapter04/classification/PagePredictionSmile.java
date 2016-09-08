@@ -5,34 +5,19 @@ import java.util.List;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
-import chapter04.BeanToJoinery;
-import chapter04.Data;
-import chapter04.RankedPage;
+import chapter04.RankedPageData;
 import chapter04.cv.Dataset;
 import chapter04.cv.Fold;
 import chapter04.preprocess.StandardizationPreprocessor;
-import joinery.DataFrame;
 import smile.classification.DecisionTree.SplitRule;
 import smile.classification.GradientTreeBoost;
 import smile.classification.LogisticRegression;
 import smile.classification.RandomForest;
 
-public class SmilePagePrediction {
+public class PagePredictionSmile {
 
     public static void main(String[] args) throws IOException {
-        List<RankedPage> pages = Data.readRankedPages();
-        DataFrame<Object> dataframe = BeanToJoinery.convert(pages, RankedPage.class);
-
-        System.out.println(dataframe.head());
-
-        List<Object> page = dataframe.col("page");
-        double[] target = page.stream().mapToInt(o -> (int) o).mapToDouble(p -> (p == 0) ? 1.0 : 0.0).toArray();
-
-        dataframe = dataframe.drop("page", "url", "position");
-        double[][] X = dataframe.toModelMatrix(0.0);
-
-        Dataset dataset = new Dataset(X, target);
-        Fold split = dataset.trainTestSplit(0.2);
+        Fold split = RankedPageData.readRankedPagesMatrix();
 
         Dataset train = split.getTrain();
         Dataset test = split.getTest();
