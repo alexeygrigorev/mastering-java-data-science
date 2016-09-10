@@ -106,6 +106,16 @@
       <version>3.3.0</version>
     </dependency>
 
+    <dependency>
+      <groupId>tw.edu.ntu.csie</groupId>
+      <artifactId>libsvm</artifactId>
+      <version>3.17</version>
+    </dependency>
+    <dependency>
+      <groupId>de.bwaldvogel</groupId>
+      <artifactId>liblinear</artifactId>
+      <version>1.95</version>
+    </dependency>
 
     <!-- Tests -->
     <dependency>
