@@ -12,7 +12,6 @@ import libsvm.svm_model;
 import libsvm.svm_node;
 import libsvm.svm_parameter;
 import libsvm.svm_problem;
-import smile.validation.AUC;
 
 public class LibSVM {
 
@@ -38,7 +37,7 @@ public class LibSVM {
 
     public static double auc(svm_model model, Dataset dataset) {
         double[] probs = predict(model, dataset);
-        return AUC.measure(dataset.getYAsInt(), probs);
+        return Metrics.auc(dataset.getY(), probs);
     }
 
     public static double[] predict(svm_model model, Dataset dataset) {

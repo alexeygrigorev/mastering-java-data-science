@@ -13,7 +13,6 @@ import net.sf.javaml.classification.Classifier;
 import net.sf.javaml.core.DefaultDataset;
 import net.sf.javaml.core.DenseInstance;
 import net.sf.javaml.core.Instance;
-import smile.validation.AUC;
 
 public class JavaML {
 
@@ -30,8 +29,7 @@ public class JavaML {
 
     public static double auc(Classifier model, Dataset dataset) {
         double[] probability = predict(model, dataset);
-        int[] truth = dataset.getYAsInt();
-        return AUC.measure(truth, probability);
+        return Metrics.auc(dataset.getY(), probability);
     }
 
     public static double[] predict(Classifier model, Dataset dataset) {

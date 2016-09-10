@@ -11,7 +11,6 @@ import jsat.classifiers.CategoricalResults;
 import jsat.classifiers.Classifier;
 import jsat.classifiers.DataPoint;
 import jsat.linear.DenseVector;
-import smile.validation.AUC;
 
 public class JSAT {
 
@@ -28,8 +27,8 @@ public class JSAT {
 
     public static double auc(Classifier model, Dataset dataset) {
         double[] probability = predict(model, dataset);
-        int[] truth = dataset.getYAsInt();
-        return AUC.measure(truth, probability);
+        double[] truth = dataset.getY();
+        return Metrics.auc(truth, probability);
     }
 
     public static double[] predict(Classifier model, Dataset dataset) {

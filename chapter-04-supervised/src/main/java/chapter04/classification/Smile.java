@@ -8,7 +8,6 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import chapter04.cv.Dataset;
 import chapter04.cv.Fold;
 import smile.classification.SoftClassifier;
-import smile.validation.AUC;
 
 public class Smile {
 
@@ -26,13 +25,7 @@ public class Smile {
 
     public static double auc(SoftClassifier<double[]> model, Dataset dataset) {
         double[] probability = predict(model, dataset);
-        int[] truth = dataset.getYAsInt();
-        double auc = AUC.measure(truth, probability);
-        if (auc < 0.5) {
-            return 1 - auc;
-        } else {
-            return auc;
-        }
+        return Metrics.auc(dataset.getY(), probability);
     }
 
     public static double[] predict(SoftClassifier<double[]> model, Dataset dataset) {

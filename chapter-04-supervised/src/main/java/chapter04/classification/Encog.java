@@ -7,7 +7,6 @@ import org.encog.ml.train.MLTrain;
 import org.encog.neural.networks.BasicNetwork;
 
 import chapter04.cv.Dataset;
-import smile.validation.AUC;
 
 public class Encog {
 
@@ -26,7 +25,7 @@ public class Encog {
 
     public static double auc(BasicNetwork network, Dataset dataset) {
         double[] predictTrain = predict(network, dataset);
-        return AUC.measure(dataset.getYAsInt(), predictTrain);
+        return Metrics.auc(dataset.getY(), predictTrain);
     }
 
     public static double[] predict(BasicNetwork model, Dataset dataset) {
