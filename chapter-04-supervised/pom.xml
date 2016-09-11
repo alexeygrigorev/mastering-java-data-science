@@ -84,6 +84,12 @@
       <version>1.2.0</version>
     </dependency>
     <dependency>
+      <groupId>com.github.haifengl</groupId>
+      <artifactId>smile-plot</artifactId>
+      <version>1.1.0</version>
+    </dependency>
+
+    <dependency>
       <groupId>com.edwardraff</groupId>
       <artifactId>JSAT</artifactId>
       <version>0.0.5</version>

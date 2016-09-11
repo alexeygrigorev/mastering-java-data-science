@@ -82,6 +82,8 @@ public class Metrics {
                 fp++;
             } else if (actual[i] == 1.0 && proba[i] <= threshold) {
                 fn++;
+            } else {
+                throw new IllegalArgumentException("unexpected label " + actual[i] + " at index " + i);
             }
         }
 
