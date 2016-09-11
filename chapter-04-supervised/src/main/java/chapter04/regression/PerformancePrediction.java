@@ -15,7 +15,7 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import com.google.common.base.Stopwatch;
 
 import chapter04.cv.Dataset;
-import chapter04.cv.Fold;
+import chapter04.cv.Split;
 import smile.regression.LASSO;
 import smile.regression.Regression;
 import smile.validation.MSE;
@@ -26,11 +26,11 @@ public class PerformancePrediction {
         Path path = Paths.get("data/performance.bin");
         Dataset dataset = read(path);
 
-        Fold trainTestSplit = dataset.shuffleSplit(0.3);
+        Split trainTestSplit = dataset.shuffleSplit(0.3);
         Dataset train = trainTestSplit.getTrain();
         Dataset test = trainTestSplit.getTest();
 
-        List<Fold> folds = train.shuffleKFold(3);
+        List<Split> folds = train.shuffleKFold(3);
 
         DescriptiveStatistics baseline = crossValidate(folds, data -> mean(data));
         System.out.printf("baseline: rmse=%.4f ± %.4f%n", baseline.getMean(), baseline.getStandardDeviation());
@@ -60,7 +60,7 @@ public class PerformancePrediction {
         return x -> meanTarget;
     }
 
-    public static DescriptiveStatistics crossValidate(List<Fold> folds,
+    public static DescriptiveStatistics crossValidate(List<Split> folds,
             Function<Dataset, Regression<double[]>> trainer) {
         double[] aucs = folds.parallelStream().mapToDouble(fold -> {
             Dataset train = fold.getTrain();

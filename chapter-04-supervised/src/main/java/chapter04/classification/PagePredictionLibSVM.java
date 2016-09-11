@@ -7,7 +7,7 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import chapter04.RankedPageData;
 import chapter04.cv.Dataset;
-import chapter04.cv.Fold;
+import chapter04.cv.Split;
 import chapter04.preprocess.StandardizationPreprocessor;
 import libsvm.svm_model;
 import libsvm.svm_parameter;
@@ -15,7 +15,7 @@ import libsvm.svm_parameter;
 public class PagePredictionLibSVM {
 
     public static void main(String[] args) throws IOException {
-        Fold split = RankedPageData.readRankedPagesMatrix();
+        Split split = RankedPageData.readRankedPagesMatrix();
 
         Dataset train = split.getTrain();
         Dataset test = split.getTest();
@@ -26,7 +26,7 @@ public class PagePredictionLibSVM {
 
         LibSVM.mute();
 
-        List<Fold> folds = train.kfold(3);
+        List<Split> folds = train.kfold(3);
 
         double[] Cs = { 0.001, 0.01, 0.1, 0.5, 1.0, 10.0, 20.0 };
         for (double C : Cs) {

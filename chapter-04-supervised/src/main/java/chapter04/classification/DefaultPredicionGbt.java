@@ -14,7 +14,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import chapter04.cv.Dataset;
-import chapter04.cv.Fold;
+import chapter04.cv.Split;
 import joinery.DataFrame;
 import joinery.impl.Views;
 import smile.classification.GradientTreeBoost;
@@ -68,11 +68,11 @@ public class DefaultPredicionGbt {
         double[][] X = modelDataFrame.toModelMatrix(0.0);
 
         Dataset dataset = new Dataset(X, target);
-        Fold split = dataset.shuffleSplit(0.2);
+        Split split = dataset.shuffleSplit(0.2);
         Dataset allTrain = split.getTrain();
         Dataset test = split.getTest();
 
-        Fold trainSplit = allTrain.shuffleSplit(0.7);
+        Split trainSplit = allTrain.shuffleSplit(0.7);
         Dataset train = trainSplit.getTrain();
 
         int ntrees = 1000;
@@ -147,7 +147,7 @@ public class DefaultPredicionGbt {
         return importances.sortBy("-importance");
     }
 
-    private static void learningCurves(Fold split, GradientTreeBoost gbt) {
+    private static void learningCurves(Split split, GradientTreeBoost gbt) {
         System.out.println("learning curves...");
 
         int[] sizes = { 1000, 900, 800, 700, 600, 500, 400, 300, 200, 100, 50 };

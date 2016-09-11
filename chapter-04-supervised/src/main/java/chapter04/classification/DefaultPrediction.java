@@ -10,7 +10,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import chapter04.cv.Dataset;
-import chapter04.cv.Fold;
+import chapter04.cv.Split;
 import chapter04.preprocess.StandardizationPreprocessor;
 import joinery.DataFrame;
 import jsat.classifiers.linear.LogisticRegressionDCD;
@@ -58,11 +58,11 @@ public class DefaultPrediction {
         StandardizationPreprocessor preprocessor = StandardizationPreprocessor.train(dataset);
         dataset = preprocessor.transform(dataset);
 
-        Fold split = dataset.shuffleSplit(0.2);
+        Split split = dataset.shuffleSplit(0.2);
         Dataset train = split.getTrain();
         Dataset test = split.getTest();
 
-        List<Fold> folds = train.shuffleKFold(3);
+        List<Split> folds = train.shuffleKFold(3);
 
         double[] cs = { 0.0001, 0.01, 0.5, 1.0, 5.0, 10.0, 50.0, 70, 100 };
         for (double c : cs) {

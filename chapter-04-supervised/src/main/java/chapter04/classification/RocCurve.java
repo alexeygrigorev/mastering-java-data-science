@@ -22,6 +22,44 @@ public class RocCurve {
         rocPlot(plotData);
     }
 
+    public static double auc(double[] actual, double[] prediction) {
+        List<ActualPredictedPair> pairs = sortByScore(actual, prediction);
+        int pos = numberOfPositives(pairs);
+
+        int n = pairs.size();
+
+        int neg = n - pos;
+        double stepUp = 1.0 / neg;
+        double stepRight = 1.0 / pos;
+
+        double fpr = 0.0;
+        double auc = 0.0;
+
+        for (int i = 0; i < n; i++) {
+            ActualPredictedPair pair = pairs.get(i);
+            if (pair.isNegative()) {
+                fpr = fpr + stepUp;
+            } else if (pair.isPositive()) {
+                auc = auc + fpr * stepRight;
+            }
+        }
+
+        return auc;
+    }
+    
+    private static List<ActualPredictedPair> sortByScore(double[] actual, double[] prediction) {
+        int length = actual.length;
+
+        List<ActualPredictedPair> pairs = new ArrayList<>(length);
+        for (int i = 0; i < length; i++) {
+            pairs.add(new ActualPredictedPair(actual[i], prediction[i]));
+        }
+
+        Ordering<ActualPredictedPair> ordering =
+                Ordering.natural().onResultOf(ActualPredictedPair::getPredicted);
+        return ordering.immutableSortedCopy(pairs);
+    }
+
     private static int numberOfPositives(List<ActualPredictedPair> pairs) {
         int pos = 0;
 
@@ -29,34 +67,11 @@ public class RocCurve {
             if (pair.isPositive()) {
                 pos++;
             } else if (!pair.isNegative()) {
-                throw new IllegalStateException("if a pair is not positive, it must be negative");
+                throw new IllegalArgumentException("if a pair is not positive, it must be negative - but it's not");
             }
         }
 
         return pos;
-    }
-
-    private static void rocPlot(double[][] rocData) {
-        JFrame frame = new JFrame("ROC Curve");
-        frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-
-        double[] lowerBound = { 0, 0 };
-        double[] upperBound = { 1, 1 };
-
-        PlotCanvas canvas = new PlotCanvas(lowerBound, upperBound, false);
-        canvas.setAxisLabel(0, "True Positive Rate");
-        canvas.setAxisLabel(1, "False Positive Rate");
-        canvas.setTitle("ROC Curve");
-
-        double[][] baseline = { { 0, 0 }, { 1, 1 } };
-        canvas.line(baseline, Style.DASH, Color.GRAY);
-        canvas.line(rocData, Style.SOLID, Color.BLACK);
-
-        frame.add(canvas);
-
-        frame.setSize(new Dimension(1000, 1000));
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
     }
 
     private static double[][] rocData(List<ActualPredictedPair> pairs, int pos) {
@@ -86,17 +101,27 @@ public class RocCurve {
         return data;
     }
 
-    private static List<ActualPredictedPair> sortByScore(double[] actual, double[] prediction) {
-        int length = actual.length;
+    private static void rocPlot(double[][] rocData) {
+        JFrame frame = new JFrame("ROC Curve");
+        frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 
-        List<ActualPredictedPair> pairs = new ArrayList<>(length);
-        for (int i = 0; i < length; i++) {
-            pairs.add(new ActualPredictedPair(actual[i], prediction[i]));
-        }
+        double[] lowerBound = { 0, 0 };
+        double[] upperBound = { 1, 1 };
 
-        Ordering<ActualPredictedPair> ordering = 
-                Ordering.natural().onResultOf(ActualPredictedPair::getPredicted);
-        return ordering.immutableSortedCopy(pairs);
+        PlotCanvas canvas = new PlotCanvas(lowerBound, upperBound, false);
+        canvas.setAxisLabel(0, "True Positive Rate");
+        canvas.setAxisLabel(1, "False Positive Rate");
+        canvas.setTitle("ROC Curve");
+
+        double[][] baseline = { { 0, 0 }, { 1, 1 } };
+        canvas.line(baseline, Style.DASH, Color.GRAY);
+        canvas.line(rocData, Style.SOLID, Color.BLACK);
+
+        frame.add(canvas);
+
+        frame.setSize(new Dimension(1000, 1000));
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
     }
 
     private static class ActualPredictedPair {

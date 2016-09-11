@@ -5,7 +5,7 @@ import com.google.common.base.CharMatcher;
 public class RankedPage {
 
     private static final CharMatcher SLASH = CharMatcher.is('/');
-    
+
     private String url;
     private int position;
     private int page;

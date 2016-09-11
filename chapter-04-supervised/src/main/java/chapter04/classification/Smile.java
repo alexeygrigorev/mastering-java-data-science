@@ -6,12 +6,12 @@ import java.util.function.Function;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import chapter04.cv.Dataset;
-import chapter04.cv.Fold;
+import chapter04.cv.Split;
 import smile.classification.SoftClassifier;
 
 public class Smile {
 
-    public static DescriptiveStatistics crossValidate(List<Fold> folds,
+    public static DescriptiveStatistics crossValidate(List<Split> folds,
             Function<Dataset, SoftClassifier<double[]>> trainer) {
         double[] aucs = folds.parallelStream().mapToDouble(fold -> {
             Dataset foldTrain = fold.getTrain();

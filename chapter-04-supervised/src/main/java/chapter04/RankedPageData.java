@@ -12,7 +12,7 @@ import com.fasterxml.jackson.jr.ob.JSON;
 import com.google.common.base.Throwables;
 
 import chapter04.cv.Dataset;
-import chapter04.cv.Fold;
+import chapter04.cv.Split;
 import joinery.DataFrame;
 
 public class RankedPageData {
@@ -32,7 +32,7 @@ public class RankedPageData {
         }
     }
 
-    public static Fold readRankedPagesMatrix() throws IOException {
+    public static Split readRankedPagesMatrix() throws IOException {
         List<RankedPage> pages = RankedPageData.readRankedPages();
         DataFrame<Object> dataframe = BeanToJoinery.convert(pages, RankedPage.class);
 

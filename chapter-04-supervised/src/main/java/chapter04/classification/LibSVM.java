@@ -6,7 +6,7 @@ import java.util.function.Function;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import chapter04.cv.Dataset;
-import chapter04.cv.Fold;
+import chapter04.cv.Split;
 import libsvm.svm;
 import libsvm.svm_model;
 import libsvm.svm_node;
@@ -24,7 +24,7 @@ public class LibSVM {
         return svm.svm_train(prob, param);
     }
 
-    public static DescriptiveStatistics crossValidate(List<Fold> folds, Function<Dataset, svm_model> trainer) {
+    public static DescriptiveStatistics crossValidate(List<Split> folds, Function<Dataset, svm_model> trainer) {
         double[] aucs = folds.parallelStream().mapToDouble(fold -> {
             Dataset foldTrain = fold.getTrain();
             Dataset foldValidation = fold.getTest();

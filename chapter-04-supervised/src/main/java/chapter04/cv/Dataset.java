@@ -39,19 +39,19 @@ public class Dataset implements Serializable {
         return getX().length;
     }
 
-    public List<Fold> shuffleKFold(int k) {
+    public List<Split> shuffleKFold(int k) {
         return CV.kfold(this, k, true, SEED);
     }
 
-    public List<Fold> kfold(int k) {
+    public List<Split> kfold(int k) {
         return CV.kfold(this, k, false, SEED);
     }
 
-    public Fold trainTestSplit(double testRatio) {
+    public Split trainTestSplit(double testRatio) {
         return CV.trainTestSplit(this, testRatio, false, SEED);
     }
 
-    public Fold shuffleSplit(double testRatio) {
+    public Split shuffleSplit(double testRatio) {
         return CV.trainTestSplit(this, testRatio, true, SEED);
     }
 

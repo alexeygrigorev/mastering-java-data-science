@@ -8,7 +8,7 @@ import org.apache.commons.io.output.NullOutputStream;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import chapter04.cv.Dataset;
-import chapter04.cv.Fold;
+import chapter04.cv.Split;
 import de.bwaldvogel.liblinear.Feature;
 import de.bwaldvogel.liblinear.FeatureNode;
 import de.bwaldvogel.liblinear.Linear;
@@ -23,7 +23,7 @@ public class LibLinear {
         Linear.setDebugOutput(devNull);
     }
 
-    public static DescriptiveStatistics crossValidate(List<Fold> folds, Function<Dataset, Model> trainer) {
+    public static DescriptiveStatistics crossValidate(List<Split> folds, Function<Dataset, Model> trainer) {
         double[] aucs = folds.parallelStream().mapToDouble(fold -> {
             Dataset foldTrain = fold.getTrain();
             Dataset foldValidation = fold.getTest();

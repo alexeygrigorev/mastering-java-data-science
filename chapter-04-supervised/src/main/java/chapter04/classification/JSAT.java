@@ -6,7 +6,7 @@ import java.util.function.Function;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import chapter04.cv.Dataset;
-import chapter04.cv.Fold;
+import chapter04.cv.Split;
 import jsat.classifiers.CategoricalResults;
 import jsat.classifiers.Classifier;
 import jsat.classifiers.DataPoint;
@@ -14,7 +14,7 @@ import jsat.linear.DenseVector;
 
 public class JSAT {
 
-    public static DescriptiveStatistics crossValidate(List<Fold> folds, Function<Dataset, Classifier> trainer) {
+    public static DescriptiveStatistics crossValidate(List<Split> folds, Function<Dataset, Classifier> trainer) {
         double[] aucs = folds.parallelStream().mapToDouble(fold -> {
             Dataset foldTrain = fold.getTrain();
             Dataset foldValidation = fold.getTest();

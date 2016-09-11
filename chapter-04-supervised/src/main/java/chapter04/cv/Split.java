@@ -2,17 +2,17 @@ package chapter04.cv;
 
 import java.util.Objects;
 
-public class Fold {
+public class Split {
 
     private final Dataset train;
     private final Dataset test;
 
-    public Fold(Dataset train, Dataset test) {
+    public Split(Dataset train, Dataset test) {
         this.train = train;
         this.test = test;
     }
 
-    public static Fold fromIndexes(Dataset dataset, int[] trainIndex, int[] testIndex) {
+    public static Split fromIndexes(Dataset dataset, int[] trainIndex, int[] testIndex) {
         double[][] X = dataset.getX();
         double[] y = dataset.getY();
 
@@ -38,7 +38,7 @@ public class Fold {
 
         Dataset train = new Dataset(trainXres, trainYres);
         Dataset test = new Dataset(testXres, testYres);
-        return new Fold(train, test);
+        return new Split(train, test);
     }
 
     public Dataset getTrain() {
@@ -51,8 +51,8 @@ public class Fold {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof Fold) {
-            Fold other = (Fold) obj;
+        if (obj instanceof Split) {
+            Split other = (Split) obj;
             return train.equals(other.train) && test.equals(test);
         }
 

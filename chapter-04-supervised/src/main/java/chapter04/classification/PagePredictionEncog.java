@@ -10,13 +10,13 @@ import org.encog.neural.networks.training.strategy.RegularizationStrategy;
 
 import chapter04.RankedPageData;
 import chapter04.cv.Dataset;
-import chapter04.cv.Fold;
+import chapter04.cv.Split;
 import chapter04.preprocess.StandardizationPreprocessor;
 
 public class PagePredictionEncog {
 
     public static void main(String[] args) throws Exception {
-        Fold split = RankedPageData.readRankedPagesMatrix();
+        Split split = RankedPageData.readRankedPagesMatrix();
 
         Dataset fullTrain = split.getTrain();
         Dataset test = split.getTest();
@@ -25,7 +25,7 @@ public class PagePredictionEncog {
         fullTrain = preprocessor.transform(fullTrain);
         test = preprocessor.transform(test);
 
-        Fold validationSplit = fullTrain.trainTestSplit(0.3);
+        Split validationSplit = fullTrain.trainTestSplit(0.3);
         Dataset train = validationSplit.getTrain();
 
         int noInputNeurons = fullTrain.getX()[0].length;

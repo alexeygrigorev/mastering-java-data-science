@@ -7,7 +7,7 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import chapter04.RankedPageData;
 import chapter04.cv.Dataset;
-import chapter04.cv.Fold;
+import chapter04.cv.Split;
 import chapter04.preprocess.StandardizationPreprocessor;
 import jsat.classifiers.linear.LogisticRegressionDCD;
 import jsat.classifiers.svm.SBP;
@@ -20,7 +20,7 @@ import jsat.regression.LogisticRegression;
 public class PagePredictionJSAT {
 
     public static void main(String[] args) throws IOException {
-        Fold split = RankedPageData.readRankedPagesMatrix();
+        Split split = RankedPageData.readRankedPagesMatrix();
 
         Dataset train = split.getTrain();
         Dataset test = split.getTest();
@@ -29,7 +29,7 @@ public class PagePredictionJSAT {
         train = preprocessor.transform(train);
         test = preprocessor.transform(test);
 
-        List<Fold> folds = train.kfold(3);
+        List<Split> folds = train.kfold(3);
 
         DescriptiveStatistics logreg = JSAT.crossValidate(folds, fold -> {
             LogisticRegression model = new LogisticRegression();

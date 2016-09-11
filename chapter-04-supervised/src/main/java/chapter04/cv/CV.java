@@ -10,7 +10,7 @@ import org.apache.commons.lang3.Validate;
 
 public class CV {
 
-    public static List<Fold> kfold(Dataset dataset, int k, boolean shuffle, long seed) {
+    public static List<Split> kfold(Dataset dataset, int k, boolean shuffle, long seed) {
         int length = dataset.length();
         Validate.isTrue(k < length);
 
@@ -20,18 +20,18 @@ public class CV {
         }
 
         int[][] folds = prepareFolds(indexes, k);
-        List<Fold> result = new ArrayList<>();
+        List<Split> result = new ArrayList<>();
 
         for (int i = 0; i < k; i++) {
             int[] testIdx = folds[i];
             int[] trainIdx = combineTrainFolds(folds, indexes.length, i);
-            result.add(Fold.fromIndexes(dataset, trainIdx, testIdx));
+            result.add(Split.fromIndexes(dataset, trainIdx, testIdx));
         }
 
         return result;
     }
 
-    public static Fold trainTestSplit(Dataset dataset, double testRatio, boolean shuffle, long seed) {
+    public static Split trainTestSplit(Dataset dataset, double testRatio, boolean shuffle, long seed) {
         Validate.isTrue(testRatio > 0.0 && testRatio < 1.0, "testRatio must be in (0, 1) interval");
 
         int[] indexes = IntStream.range(0, dataset.length()).toArray();
@@ -44,7 +44,7 @@ public class CV {
         int[] trainIndex = Arrays.copyOfRange(indexes, 0, trainSize);
         int[] testIndex = Arrays.copyOfRange(indexes, trainSize, indexes.length);
 
-        return Fold.fromIndexes(dataset, trainIndex, testIndex);
+        return Split.fromIndexes(dataset, trainIndex, testIndex);
     }
 
     public static void shuffle(int[] indexes, long seed) {

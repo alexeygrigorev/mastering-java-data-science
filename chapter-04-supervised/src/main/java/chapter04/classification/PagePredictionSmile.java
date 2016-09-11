@@ -7,7 +7,7 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import chapter04.RankedPageData;
 import chapter04.cv.Dataset;
-import chapter04.cv.Fold;
+import chapter04.cv.Split;
 import chapter04.preprocess.StandardizationPreprocessor;
 import smile.classification.DecisionTree.SplitRule;
 import smile.classification.GradientTreeBoost;
@@ -20,7 +20,7 @@ import smile.math.kernel.PolynomialKernel;
 public class PagePredictionSmile {
 
     public static void main(String[] args) throws IOException {
-        Fold split = RankedPageData.readRankedPagesMatrix();
+        Split split = RankedPageData.readRankedPagesMatrix();
 
         Dataset train = split.getTrain();
         Dataset test = split.getTest();
@@ -29,7 +29,7 @@ public class PagePredictionSmile {
         train = preprocessor.transform(train);
         test = preprocessor.transform(test);
 
-        List<Fold> folds = train.kfold(3);
+        List<Split> folds = train.kfold(3);
 
         double[] lambdas = { 0, 0.5, 1.0, 5.0, 10.0, 100.0, 1000.0 };
         for (double lambda : lambdas) {

@@ -8,7 +8,7 @@ import java.util.function.Function;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import chapter04.cv.Dataset;
-import chapter04.cv.Fold;
+import chapter04.cv.Split;
 import net.sf.javaml.classification.Classifier;
 import net.sf.javaml.core.DefaultDataset;
 import net.sf.javaml.core.DenseInstance;
@@ -16,7 +16,7 @@ import net.sf.javaml.core.Instance;
 
 public class JavaML {
 
-    public static DescriptiveStatistics crossValidate(List<Fold> folds, Function<Dataset, Classifier> trainer) {
+    public static DescriptiveStatistics crossValidate(List<Split> folds, Function<Dataset, Classifier> trainer) {
         double[] aucs = folds.parallelStream().mapToDouble(fold -> {
             Dataset foldTrain = fold.getTrain();
             Dataset foldValidation = fold.getTest();

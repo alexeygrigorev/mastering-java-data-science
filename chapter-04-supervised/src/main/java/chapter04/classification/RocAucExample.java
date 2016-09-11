@@ -7,7 +7,7 @@ import java.util.stream.IntStream;
 
 import chapter04.RankedPageData;
 import chapter04.cv.Dataset;
-import chapter04.cv.Fold;
+import chapter04.cv.Split;
 import chapter04.preprocess.StandardizationPreprocessor;
 import de.bwaldvogel.liblinear.Model;
 import de.bwaldvogel.liblinear.Parameter;
@@ -32,7 +32,7 @@ public class RocAucExample {
         double[] actual = concat.map(d -> maybeFlip(d, 0.1, rnd)).toArray();
 
         RocCurve.plot(actual, score);
-        double auc = Metrics.auc(actual, score);
+        double auc = RocCurve.auc(actual, score);
         System.out.printf("ROC AUC %3.2f%n", auc);
     }
 
@@ -50,7 +50,7 @@ public class RocAucExample {
     }
 
     public static void realExample() throws IOException {
-        Fold split = RankedPageData.readRankedPagesMatrix();
+        Split split = RankedPageData.readRankedPagesMatrix();
 
         Dataset train = split.getTrain();
         Dataset test = split.getTest();
@@ -69,7 +69,7 @@ public class RocAucExample {
 
         RocCurve.plot(actual, prediction);
 
-        double auc = Metrics.auc(actual, prediction);
+        double auc = RocCurve.auc(actual, prediction);
         System.out.printf("ROC AUC %3.2f%n", auc);
     }
 }
