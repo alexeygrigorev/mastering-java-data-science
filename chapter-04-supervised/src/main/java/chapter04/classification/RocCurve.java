@@ -22,31 +22,6 @@ public class RocCurve {
         rocPlot(plotData);
     }
 
-    public static double auc(double[] actual, double[] prediction) {
-        List<ActualPredictedPair> pairs = sortByScore(actual, prediction);
-        int pos = numberOfPositives(pairs);
-
-        int n = pairs.size();
-
-        int neg = n - pos;
-        double stepUp = 1.0 / neg;
-        double stepRight = 1.0 / pos;
-
-        double fpr = 0.0;
-        double auc = 0.0;
-
-        for (int i = 0; i < n; i++) {
-            ActualPredictedPair pair = pairs.get(i);
-            if (pair.isNegative()) {
-                fpr = fpr + stepUp;
-            } else if (pair.isPositive()) {
-                auc = auc + fpr * stepRight;
-            }
-        }
-
-        return auc;
-    }
-    
     private static List<ActualPredictedPair> sortByScore(double[] actual, double[] prediction) {
         int length = actual.length;
 
@@ -78,8 +53,8 @@ public class RocCurve {
         int n = pairs.size();
 
         int neg = n - pos;
-        double stepUp = 1.0 / neg;
-        double stepRight = 1.0 / pos;
+        double stepUp = 1.0 / pos;
+        double stepRight = 1.0 / neg;
 
         double tpr = 0.0;
         double fpr = 0.0;
@@ -88,14 +63,14 @@ public class RocCurve {
 
         for (int i = 0; i < n; i++) {
             ActualPredictedPair pair = pairs.get(i);
-            if (pair.isNegative()) {
-                fpr = fpr + stepUp;
-            } else if (pair.isPositive()) {
-                tpr = tpr + stepRight;
+            if (pair.isPositive()) {
+                tpr = tpr + stepUp;
+            } else if (pair.isNegative()) {
+                fpr = fpr + stepRight;
             }
 
-            data[i][0] = tpr;
-            data[i][1] = fpr;
+            data[i][0] = fpr;
+            data[i][1] = tpr;
         }
 
         return data;
@@ -109,8 +84,8 @@ public class RocCurve {
         double[] upperBound = { 1, 1 };
 
         PlotCanvas canvas = new PlotCanvas(lowerBound, upperBound, false);
-        canvas.setAxisLabel(0, "True Positive Rate");
-        canvas.setAxisLabel(1, "False Positive Rate");
+        canvas.setAxisLabel(0, "False Positive Rate");
+        canvas.setAxisLabel(1, "True Positive Rate");
         canvas.setTitle("ROC Curve");
 
         double[][] baseline = { { 0, 0 }, { 1, 1 } };

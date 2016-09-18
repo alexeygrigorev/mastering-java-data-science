@@ -70,7 +70,6 @@ public class DefaultPredicionGbt {
         Dataset dataset = new Dataset(X, target);
         Split split = dataset.shuffleSplit(0.2);
         Dataset allTrain = split.getTrain();
-        Dataset test = split.getTest();
 
         Split trainSplit = allTrain.shuffleSplit(0.7);
         Dataset train = trainSplit.getTrain();

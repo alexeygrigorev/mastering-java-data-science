@@ -22,6 +22,10 @@ import joinery.DataFrame;
 public class PerformanceDataPreparation {
 
     public static void main(String[] args) throws IOException {
+        prepareData();
+    }
+
+    public static void prepareData() throws IOException {
         DataFrame<Object> dataframe = DataFrame.readCsv("data/performance/x_train.csv");
 
         DataFrame<Object> targetDf = DataFrame.readCsv("data/performance/y_train.csv");

@@ -36,7 +36,7 @@ public class PagePredictionLibLinear {
         for (SolverType solver : solvers) {
             for (double C : Cs) {
                 DescriptiveStatistics summary = LibLinear.crossValidate(folds, fold -> {
-                    Parameter param = new Parameter(solver, C, 0.1);
+                    Parameter param = new Parameter(solver, C, 0.0001);
                     return LibLinear.train(fold, param);
                 });
 
@@ -46,7 +46,7 @@ public class PagePredictionLibLinear {
             }
         }
 
-        Parameter param = new Parameter(SolverType.L1R_LR, 0.05, 0.1);
+        Parameter param = new Parameter(SolverType.L1R_LR, 0.05, 0.0001);
         Model finalModel = LibLinear.train(train, param);
         double finalAuc = LibLinear.auc(finalModel, test);
         System.out.printf("final logreg        auc=%.4f%n", finalAuc);

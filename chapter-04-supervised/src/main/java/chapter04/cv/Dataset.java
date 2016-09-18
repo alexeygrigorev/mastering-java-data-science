@@ -10,6 +10,7 @@ import jsat.classifiers.ClassificationDataSet;
 import jsat.classifiers.DataPoint;
 import jsat.classifiers.DataPointPair;
 import jsat.linear.DenseVector;
+import jsat.regression.RegressionDataSet;
 
 public class Dataset implements Serializable {
 
@@ -55,7 +56,7 @@ public class Dataset implements Serializable {
         return CV.trainTestSplit(this, testRatio, true, SEED);
     }
 
-    public ClassificationDataSet toJsatDataset() {
+    public ClassificationDataSet toJsatClassificationDataset() {
         // TODO: what if it's not binary?
         CategoricalData binary = new CategoricalData(2);
 
@@ -67,5 +68,16 @@ public class Dataset implements Serializable {
         }
 
         return new ClassificationDataSet(data, binary);
+    }
+
+    public RegressionDataSet toJsatRegressionDataset() {
+        List<DataPointPair<Double>> data = new ArrayList<>(X.length);
+
+        for (int i = 0; i < X.length; i++) {
+            DataPoint row = new DataPoint(new DenseVector(X[i]));
+            data.add(new DataPointPair<Double>(row, y[i]));
+        }
+
+        return new RegressionDataSet(data);
     }
 }

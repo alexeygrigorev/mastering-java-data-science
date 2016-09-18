@@ -9,15 +9,15 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import chapter04.cv.Dataset;
 
-public class StandardizationPreprocessor {
+public class MinMaxPreprocessor {
 
     private final DescriptiveStatistics[] stats;
 
-    public StandardizationPreprocessor(DescriptiveStatistics[] stats) {
+    public MinMaxPreprocessor(DescriptiveStatistics[] stats) {
         this.stats = stats;
     }
 
-    public static StandardizationPreprocessor train(Dataset dataset) {
+    public static MinMaxPreprocessor train(Dataset dataset) {
         RealMatrix matrix = new Array2DRowRealMatrix(dataset.getX());
 
         int ncol = matrix.getColumnDimension();
@@ -28,7 +28,7 @@ public class StandardizationPreprocessor {
             stats[i] = new DescriptiveStatistics(column);
         }
 
-        return new StandardizationPreprocessor(stats);
+        return new MinMaxPreprocessor(stats);
     }
 
     public Dataset transform(Dataset dataset) {
@@ -38,13 +38,10 @@ public class StandardizationPreprocessor {
 
         for (int i = 0; i < ncol; i++) {
             double[] column = matrix.getColumn(i);
-            double mean = stats[i].getMean();
-            double std = stats[i].getStandardDeviation();
-            if (Math.abs(std) < 0.001)  {
-                continue;
-            }
+            double min = stats[i].getMin();
+            double max = stats[i].getMax();
 
-            double[] result = Arrays.stream(column).map(d -> (d - mean) / std).toArray();
+            double[] result = Arrays.stream(column).map(d -> (d - min) / (max - min)).toArray();
             matrix.setColumn(i, result);
         }
 

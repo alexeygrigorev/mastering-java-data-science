@@ -17,10 +17,12 @@ import com.google.common.base.Stopwatch;
 import chapter04.cv.Dataset;
 import chapter04.cv.Split;
 import smile.regression.LASSO;
+import smile.regression.OLS;
+import smile.regression.RandomForest;
 import smile.regression.Regression;
 import smile.validation.MSE;
 
-public class PerformancePrediction {
+public class PerformancePredictionSmile {
 
     public static void main(String[] args) throws IOException {
         Path path = Paths.get("data/performance.bin");
@@ -34,6 +36,12 @@ public class PerformancePrediction {
 
         DescriptiveStatistics baseline = crossValidate(folds, data -> mean(data));
         System.out.printf("baseline: rmse=%.4f ± %.4f%n", baseline.getMean(), baseline.getStandardDeviation());
+
+        DescriptiveStatistics ols = crossValidate(folds, data -> {
+            return new OLS(data.getX(), data.getY());
+        });
+
+        System.out.printf("ols:      rmse=%.4f ± %.4f%n", ols.getMean(), ols.getStandardDeviation());
 
         double[] lambdas = { 0.1, 1, 10, 100, 1000, 5000, 10000, 20000 };
         for (double lambda : lambdas) {
@@ -50,8 +58,19 @@ public class PerformancePrediction {
                     lambda, mean, std, stopwatch.stop());
         }
 
-        LASSO lasso = new LASSO(train.getX(), train.getY(), 10000);
-        double testRmse = rmse(lasso, test);
+        DescriptiveStatistics rf = crossValidate(folds, data -> {
+            int nbtrees = 100;
+            return new RandomForest.Trainer(nbtrees)
+                    .setNumRandomFeatures(15)
+                    .setMaxNodes(128)
+                    .setNodeSize(10)
+                    .setSamplingRates(0.6)
+                    .train(data.getX(), data.getY());
+        });
+        System.out.printf("rf:       rmse=%.4f ± %.4f%n", rf.getMean(), rf.getStandardDeviation());
+
+        OLS finalOls = new OLS(train.getX(), train.getY(), true);
+        double testRmse = rmse(finalOls, test);
         System.out.printf("final rmse=%.4f%n", testRmse);
     }
 
@@ -92,6 +111,10 @@ public class PerformancePrediction {
     }
 
     private static Dataset read(Path path) throws IOException {
+        if (!path.toFile().exists()) {
+            PerformanceDataPreparation.prepareData();
+        }
+
         try (InputStream is = Files.newInputStream(path)) {
             return SerializationUtils.deserialize(is);
         }

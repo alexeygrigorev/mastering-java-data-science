@@ -36,11 +36,11 @@ public class LibSVM {
     }
 
     public static double auc(svm_model model, Dataset dataset) {
-        double[] probs = predict(model, dataset);
+        double[] probs = predictProba(model, dataset);
         return Metrics.auc(dataset.getY(), probs);
     }
 
-    public static double[] predict(svm_model model, Dataset dataset) {
+    public static double[] predictProba(svm_model model, Dataset dataset) {
         int n = dataset.length();
 
         double[][] X = dataset.getX();
@@ -56,12 +56,55 @@ public class LibSVM {
         return results;
     }
 
+    public static double[] predict(svm_model model, Dataset dataset) {
+        int n = dataset.length();
+
+        double[][] X = dataset.getX();
+        double[] results = new double[n];
+
+        for (int i = 0; i < n; i++) {
+            svm_node[] row = wrapAsSvmNode(X[i]);
+            results[i] = svm.svm_predict(model, row);
+        }
+
+        return results;
+    }
+
     public static svm_parameter linearSVC(double C) {
         svm_parameter param = new svm_parameter();
         param.svm_type = svm_parameter.C_SVC;
         param.kernel_type = svm_parameter.LINEAR;
         param.probability = 1;
         param.C = C;
+
+        // defaults
+        param.cache_size = 100;
+        param.eps = 1e-3;
+        param.p = 0.1;
+        param.shrinking = 1;
+        return param;
+    }
+
+    public static svm_parameter epsilonSVR(double C, double eps) {
+        svm_parameter param = new svm_parameter();
+        param.svm_type = svm_parameter.EPSILON_SVR;
+        param.kernel_type = svm_parameter.LINEAR;
+        param.C = C;
+        param.eps = eps;
+
+        // defaults
+        param.cache_size = 100;
+        param.p = 0.1;
+        param.shrinking = 1;
+        return param;
+    }
+
+    public static svm_parameter nuSVR(double C, double nu) {
+        svm_parameter param = new svm_parameter();
+        param.svm_type = svm_parameter.NU_SVR;
+        param.kernel_type = svm_parameter.LINEAR;
+        param.C = C;
+        param.nu = nu;
 
         // defaults
         param.cache_size = 100;
@@ -105,7 +148,7 @@ public class LibSVM {
         return param;
     }
 
-    private static svm_problem wrapDataset(Dataset dataset) {
+    public static svm_problem wrapDataset(Dataset dataset) {
         svm_problem prob = new svm_problem();
         prob.l = dataset.length();
         prob.x = wrapAsSvmNodes(dataset.getX());
@@ -136,4 +179,5 @@ public class LibSVM {
 
         return svmRow;
     }
+
 }

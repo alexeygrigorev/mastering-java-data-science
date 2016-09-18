@@ -60,7 +60,6 @@ public class DefaultPrediction {
 
         Split split = dataset.shuffleSplit(0.2);
         Dataset train = split.getTrain();
-        Dataset test = split.getTest();
 
         List<Split> folds = train.shuffleKFold(3);
 
@@ -71,7 +70,7 @@ public class DefaultPrediction {
                 LogisticRegressionDCD model = new LogisticRegressionDCD();
                 model.setMaxIterations(maxIterations);
                 model.setC(c);
-                model.trainC(fold.toJsatDataset());
+                model.trainC(fold.toJsatClassificationDataset());
                 return model; 
             });
 
@@ -90,14 +89,6 @@ public class DefaultPrediction {
         });
 
         System.out.printf("gbt              auc=%.4f ± %.4f%n", gbt.getMean(), gbt.getStandardDeviation());
-
-//        LogisticRegressionDCD finalModel = new LogisticRegressionDCD();
-//        finalModel.setC(0.01);
-//        finalModel.setMaxIterations(100);
-//        finalModel.trainC(train.toJsatDataset());
-//
-//        double auc = JStat.auc(finalModel, test);
-//        System.out.printf("final log reg    auc=%.4f%n", auc);
     }
 
 }

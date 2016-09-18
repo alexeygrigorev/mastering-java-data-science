@@ -84,15 +84,16 @@ public class PagePredictionSmile {
 
         System.out.printf("gbt                 auc=%.4f ± %.4f%n", gbt.getMean(), gbt.getStandardDeviation());
 
-        GradientTreeBoost gbtFinal = new GradientTreeBoost.Trainer()
-                .setMaxNodes(100)
-                .setSamplingRates(0.7)
-                .setShrinkage(0.01)
+        RandomForest rfFinal = new RandomForest.Trainer()
                 .setNumTrees(100)
+                .setNodeSize(4)
+                .setSamplingRates(0.7)
+                .setSplitRule(SplitRule.ENTROPY)
+                .setNumRandomFeatures(3)
                 .train(train.getX(), train.getYAsInt());
 
-        double finalAuc = Smile.auc(gbtFinal, test);
-        System.out.printf("final gbt           auc=%.4f%n", finalAuc);
+        double finalAuc = Smile.auc(rfFinal, test);
+        System.out.printf("final rf            auc=%.4f%n", finalAuc);
 
         LogisticRegression logregFinal = new LogisticRegression.Trainer()
                 .setRegularizationFactor(100.0)

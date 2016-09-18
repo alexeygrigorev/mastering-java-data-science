@@ -33,7 +33,7 @@ public class PagePredictionJSAT {
 
         DescriptiveStatistics logreg = JSAT.crossValidate(folds, fold -> {
             LogisticRegression model = new LogisticRegression();
-            model.trainC(fold.toJsatDataset());
+            model.trainC(fold.toJsatClassificationDataset());
             return model;
         });
 
@@ -47,7 +47,7 @@ public class PagePredictionJSAT {
                 LogisticRegressionDCD model = new LogisticRegressionDCD();
                 model.setMaxIterations(maxIterations);
                 model.setC(c);
-                model.trainC(fold.toJsatDataset());
+                model.trainC(fold.toJsatClassificationDataset());
                 return model; 
             });
 
@@ -65,7 +65,7 @@ public class PagePredictionJSAT {
             int maxIterations = 30;
             DescriptiveStatistics summary = JSAT.crossValidate(folds, fold -> {
                 SBP sbp = new SBP(kernel, cacheMode, maxIterations, nu);
-                sbp.trainC(fold.toJsatDataset());
+                sbp.trainC(fold.toJsatClassificationDataset());
                 return sbp;
             });
 
@@ -78,14 +78,14 @@ public class PagePredictionJSAT {
             RandomForest model = new RandomForest();
             model.setFeatureSamples(4);
             model.setMaxForestSize(150);
-            model.trainC(fold.toJsatDataset());
+            model.trainC(fold.toJsatClassificationDataset());
             return model;
         });
 
         System.out.printf("random forest    auc=%.4f ± %.4f%n", rf.getMean(), rf.getStandardDeviation());
 
         LogisticRegression finalModel = new LogisticRegression();
-        finalModel.trainC(train.toJsatDataset());
+        finalModel.trainC(train.toJsatClassificationDataset());
 
         double auc = JSAT.auc(finalModel, test);
         System.out.printf("final log reg    auc=%.4f%n", auc);

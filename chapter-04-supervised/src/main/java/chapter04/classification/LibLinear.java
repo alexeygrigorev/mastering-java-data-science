@@ -57,11 +57,11 @@ public class LibLinear {
         if (model.isProbabilityModel()) {
             scores = predictProba(model, dataset);
         } else {
-            scores = decisionFunction(model, dataset);
+            scores = predictValues(model, dataset);
             scores = sigmoid(scores);
         }
 
-        return Metrics.accuracy(dataset.getY(), scores, 0.5);
+        return Metrics.auc(dataset.getY(), scores);
     }
 
     public static double[] predictProba(Model model, Dataset dataset) {
@@ -80,7 +80,7 @@ public class LibLinear {
         return results;
     }
 
-    public static double[] decisionFunction(Model model, Dataset dataset) {
+    public static double[] predictValues(Model model, Dataset dataset) {
         int n = dataset.length();
 
         double[][] X = dataset.getX();
