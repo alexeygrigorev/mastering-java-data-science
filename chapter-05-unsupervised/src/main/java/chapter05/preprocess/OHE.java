@@ -1,4 +1,4 @@
-package chapter05.dimred;
+package chapter05.preprocess;
 
 import java.util.ArrayList;
 import java.util.HashMap;

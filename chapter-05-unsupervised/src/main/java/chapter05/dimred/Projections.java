@@ -13,16 +13,26 @@ import smile.math.SparseArray.Entry;
 
 public class Projections {
 
-    public static double[][] randomProjection(int numcols, int newdim, int seed) {
-        NormalDistribution normal = new NormalDistribution(0.0, 1.0 / newdim);
+    public static double[][] randomProjection(int inputDimension, int outputDimension, int seed) {
+        NormalDistribution normal = new NormalDistribution(0.0, 1.0 / outputDimension);
         normal.reseedRandomGenerator(seed);
-        double[][] result = new double[numcols][];
+        double[][] result = new double[inputDimension][];
 
-        for (int i = 0; i < numcols; i++) {
-            result[i] = normal.sample(newdim);
+        for (int i = 0; i < inputDimension; i++) {
+            result[i] = normal.sample(outputDimension);
         }
 
         return result;
+    }
+
+    public static double[][] project(double[][] Xd, double[][] Vd) {
+        DenseMatrix X = new DenseMatrix(Xd);
+        DenseMatrix V = new DenseMatrix(Vd);
+
+        DenseMatrix XV = new DenseMatrix(X.numRows(), V.numColumns());
+        X.mult(V, XV);
+
+        return to2d(XV);
     }
 
     public static double[][] project(SparseDataset dataset, double[][] Vd) {
