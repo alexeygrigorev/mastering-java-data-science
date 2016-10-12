@@ -78,6 +78,11 @@
       <artifactId>smile-core</artifactId>
       <version>1.2.1</version>
     </dependency>
+    <dependency>
+      <groupId>com.github.haifengl</groupId>
+      <artifactId>smile-plot</artifactId>
+      <version>1.2.0</version>
+    </dependency>
 
     <dependency>
       <groupId>com.edwardraff</groupId>
@@ -91,6 +96,11 @@
       <version>1.0.2</version>
     </dependency>
 
+    <dependency>
+      <groupId>com.aol.simplereact</groupId>
+      <artifactId>cyclops-react</artifactId>
+      <version>1.0.0-FINAL</version>
+    </dependency>
 
     <!-- Tests -->
     <dependency>

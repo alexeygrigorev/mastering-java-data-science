@@ -31,10 +31,8 @@ public class Categorical {
         DataFrame<Object> dataframe = DataFrame.readCsv("data/consumer_complaints.csv");
         System.out.println("reading dataframe took " + stopwatch.stop());
 
-        DataFrame<Object> categorical = dataframe.retain("product", "sub_product", "issue", 
-                "sub_issue", "company_public_response", "company", 
-                "state", "zipcode", "consumer_consent_provided", 
-                "submitted_via");
+        DataFrame<Object> categorical = dataframe.retain("product", "sub_product", "issue", "sub_issue", "company",
+                "state", "zipcode", "consumer_consent_provided", "submitted_via");
 
         try (OutputStream os = Files.newOutputStream(path)) {
             DfHolder holder = new DfHolder(categorical);
@@ -43,4 +41,33 @@ public class Categorical {
 
         return categorical;
     }
+
+    public static DataFrame<Object> readRestOfData() throws IOException {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
+        Path path = Paths.get("data/all-complaints.bin");
+
+        if (path.toFile().exists()) {
+            try (InputStream os = Files.newInputStream(path)) {
+                DfHolder holder = SerializationUtils.deserialize(os);
+                DataFrame<Object> df = holder.toDf();
+                System.out.println("reading dataframe from cache took " + stopwatch.stop());
+                return df;
+            }
+        }
+
+        DataFrame<Object> dataframe = DataFrame.readCsv("data/consumer_complaints.csv");
+        System.out.println("reading dataframe took " + stopwatch.stop());
+
+        DataFrame<Object> rest = dataframe.drop("product", "sub_product", "issue", "sub_issue", "company", "state",
+                "zipcode", "consumer_consent_provided", "submitted_via");
+
+        try (OutputStream os = Files.newOutputStream(path)) {
+            DfHolder holder = new DfHolder(rest);
+            SerializationUtils.serialize(holder, os);
+        }
+
+        return rest;
+    }
+
 }

@@ -12,7 +12,7 @@ import java.util.Set;
 import joinery.DataFrame;
 import smile.data.SparseDataset;
 
-public class OHE {
+public class SmileOHE {
 
     public static SparseDataset oneHotEncoding(DataFrame<Object> categorical) {
         Map<String, Integer> valueToIndex = new HashMap<>();

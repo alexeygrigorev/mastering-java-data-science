@@ -45,7 +45,7 @@ public class Projections {
         return to2d(XV);
     }
 
-    private static double[][] to2d(DenseMatrix XV) {
+    public static double[][] to2d(DenseMatrix XV) {
         double[] data = XV.getData();
         int nrows = XV.numRows();
         int ncols = XV.numColumns();

@@ -4,7 +4,7 @@ import java.io.IOException;
 
 import com.google.common.base.Stopwatch;
 
-import chapter05.preprocess.OHE;
+import chapter05.preprocess.SmileOHE;
 import joinery.DataFrame;
 import smile.data.SparseDataset;
 import smile.math.matrix.SingularValueDecomposition;
@@ -16,7 +16,7 @@ public class CategoricalSvd {
         DataFrame<Object> categorical = Categorical.readData();
 
         Stopwatch stopwatch = Stopwatch.createStarted();
-        SparseDataset sparse = OHE.hashingEncoding(categorical, 50_000);
+        SparseDataset sparse = SmileOHE.hashingEncoding(categorical, 50_000);
         System.out.println("OHE took " + stopwatch.stop());
 
         stopwatch = Stopwatch.createStarted();
