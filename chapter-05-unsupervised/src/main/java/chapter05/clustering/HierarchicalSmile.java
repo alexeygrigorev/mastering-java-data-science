@@ -97,7 +97,7 @@ public class HierarchicalSmile {
 
         return sample;
     }
-    
+
     public static double[][] calcualateCosineDistance(double[][] data) {
         int nrow = data.length;
         double[][] normalized = normalize(data);
