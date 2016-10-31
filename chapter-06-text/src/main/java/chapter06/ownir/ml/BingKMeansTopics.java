@@ -71,6 +71,7 @@ public class BingKMeansTopics {
                 String term = featureNames.get(position);
                 System.out.print(term + ", ");
             }
+
             System.out.println();
         }
      }

@@ -26,8 +26,6 @@ import org.jsoup.nodes.Element;
 import com.google.common.base.Stopwatch;
 
 import chapter06.UrlRepository;
-import me.tongfei.progressbar.ProgressBar;
-import me.tongfei.progressbar.ProgressBarStyle;
 
 public class CoreNlpAndLucene {
 

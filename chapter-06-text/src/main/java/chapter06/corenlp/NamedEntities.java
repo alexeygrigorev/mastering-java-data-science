@@ -13,6 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 import com.alexeygrigorev.rseq.Pattern;
 import com.alexeygrigorev.rseq.XMatcher;
 
+import chapter06.TextUtils;
 import edu.stanford.nlp.ling.CoreAnnotations.LemmaAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations.NamedEntityTagAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations.PartOfSpeechAnnotation;
@@ -42,11 +43,11 @@ public class NamedEntities {
             String pos = tokensInfo.get(PartOfSpeechAnnotation.class);
             String ner = tokensInfo.get(NamedEntityTagAnnotation.class);
 
-            if (TokenUtils.isPunctuation(token)) {
+            if (TextUtils.isPunctuation(token)) {
                 continue;
             }
 
-            if (TokenUtils.isStopword(token)) {
+            if (TextUtils.isStopword(token)) {
                 continue;
             }
 

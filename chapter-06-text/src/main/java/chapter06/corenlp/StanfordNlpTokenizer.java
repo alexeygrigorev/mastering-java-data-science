@@ -7,6 +7,7 @@ import java.util.Properties;
 
 import org.apache.commons.lang3.StringUtils;
 
+import chapter06.TextUtils;
 import edu.stanford.nlp.ling.CoreAnnotations.LemmaAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations.PartOfSpeechAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations.TextAnnotation;
@@ -34,11 +35,11 @@ public class StanfordNlpTokenizer {
             String lemma = tokensInfo.get(LemmaAnnotation.class);
             String pos = tokensInfo.get(PartOfSpeechAnnotation.class);
 
-            if (TokenUtils.isPunctuation(token)) {
+            if (TextUtils.isPunctuation(token)) {
                 continue;
             }
 
-            if (TokenUtils.isStopword(token)) {
+            if (TextUtils.isStopword(token)) {
                 continue;
             }
 
