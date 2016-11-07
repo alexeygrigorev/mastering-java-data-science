@@ -7,9 +7,10 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import chapter06.CountVectorizer;
 import chapter06.MatrixUtils;
-import chapter06.TextUtils;
+import chapter06.ScoredIndex;
+import chapter06.text.CountVectorizer;
+import chapter06.text.TextUtils;
 import smile.data.SparseDataset;
 import smile.math.SparseArray;
 

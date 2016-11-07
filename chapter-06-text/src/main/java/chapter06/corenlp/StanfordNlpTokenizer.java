@@ -7,7 +7,7 @@ import java.util.Properties;
 
 import org.apache.commons.lang3.StringUtils;
 
-import chapter06.TextUtils;
+import chapter06.text.TextUtils;
 import edu.stanford.nlp.ling.CoreAnnotations.LemmaAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations.PartOfSpeechAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations.TextAnnotation;

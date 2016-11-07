@@ -2,6 +2,8 @@ package chapter06;
 
 import java.util.Iterator;
 
+import org.apache.commons.math3.linear.ArrayRealVector;
+
 import no.uib.cipr.matrix.DenseMatrix;
 import no.uib.cipr.matrix.DenseVector;
 import no.uib.cipr.matrix.sparse.CompRowMatrix;
@@ -90,4 +92,17 @@ public class MatrixUtils {
         return new CompRowMatrix(X);
     }
 
+    public static double[][] l2RowNormalize(double[][] data) {
+        for (int i = 0; i < data.length; i++) {
+            double[] row = data[i];
+            ArrayRealVector vector = new ArrayRealVector(row, false);
+            double norm = vector.getNorm();
+            if (norm != 0) {
+                vector.mapDivideToSelf(norm);
+                data[i] = vector.getDataRef();
+            }
+        }
+
+        return data;
+    }
 }

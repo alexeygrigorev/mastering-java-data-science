@@ -17,10 +17,11 @@ import org.jsoup.nodes.Element;
 
 import com.google.common.base.Stopwatch;
 
-import chapter06.CountVectorizer;
 import chapter06.MatrixUtils;
-import chapter06.TextUtils;
+import chapter06.ScoredIndex;
 import chapter06.UrlRepository;
+import chapter06.text.CountVectorizer;
+import chapter06.text.TextUtils;
 import smile.data.SparseDataset;
 import smile.math.SparseArray;
 

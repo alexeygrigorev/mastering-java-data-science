@@ -19,12 +19,12 @@ import org.jsoup.nodes.Element;
 
 import com.google.common.base.Stopwatch;
 
-import chapter06.CountVectorizer;
 import chapter06.MatrixUtils;
 import chapter06.Projections;
-import chapter06.TextUtils;
+import chapter06.ScoredIndex;
 import chapter06.UrlRepository;
-import chapter06.ownir.ScoredIndex;
+import chapter06.text.CountVectorizer;
+import chapter06.text.TextUtils;
 import smile.data.SparseDataset;
 import smile.math.matrix.SingularValueDecomposition;
 import smile.math.matrix.SparseMatrix;
@@ -61,7 +61,7 @@ public class BingLSI {
         SparseMatrix matrix = index.toSparseMatrix();
         SingularValueDecomposition svd = SingularValueDecomposition.decompose(matrix, 150);
         double[][] lsaIndex = Projections.project(index, svd.getV());
-        lsaIndex = l2normalize(lsaIndex);
+        lsaIndex = MatrixUtils.l2RowNormalize(lsaIndex);
 
 
         SparseDataset queryMatrix = vectorizer.transfrom(Arrays.asList(query));

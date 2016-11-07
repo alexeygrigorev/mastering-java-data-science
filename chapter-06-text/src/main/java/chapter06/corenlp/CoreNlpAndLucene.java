@@ -62,32 +62,13 @@ public class CoreNlpAndLucene {
         StanfordNlpTokenizer tokenizer = new StanfordNlpTokenizer();
 
         lines.parallelStream().forEach(line -> {
-            try {
-                String[] split = line.split("\t");
-                String url = split[3];
-
-                Optional<String> html = urls.get(url);
-                if (!html.isPresent()) {
-                    return;
+            Optional<Document> doc = convertToDocument(urls, tokenizer, line);
+            if (doc.isPresent()) {
+                try {
+                    writer.addDocument(doc.get());
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-
-                org.jsoup.nodes.Document jsoupDoc = Jsoup.parse(html.get());
-                Element body = jsoupDoc.body();
-                if (body == null) {
-                    return;
-                }
-
-                String titleTokens = prepare(tokenizer, jsoupDoc.title());
-                String bodyTokens = prepare(tokenizer, body.text());
-
-                Document doc = new Document();
-                doc.add(new Field("url", url, URL_FIELD));
-                doc.add(new Field("title", titleTokens, URL_FIELD));
-                doc.add(new Field("content", bodyTokens, BODY_FIELD));
-
-                writer.addDocument(doc);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
             }
         });
 
@@ -97,6 +78,32 @@ public class CoreNlpAndLucene {
         directory.close();
 
         System.out.println("indexing took " + stopwatch.stop());
+    }
+
+    private static Optional<Document> convertToDocument(UrlRepository urls, StanfordNlpTokenizer tokenizer, String line) {
+        String[] split = line.split("\t");
+        String url = split[3];
+
+        Optional<String> html = urls.get(url);
+        if (!html.isPresent()) {
+            return Optional.empty();
+        }
+
+        org.jsoup.nodes.Document jsoupDoc = Jsoup.parse(html.get());
+        Element body = jsoupDoc.body();
+        if (body == null) {
+            return Optional.empty();
+        }
+
+        String titleTokens = prepare(tokenizer, jsoupDoc.title());
+        String bodyTokens = prepare(tokenizer, body.text());
+
+        Document doc = new Document();
+        doc.add(new Field("url", url, URL_FIELD));
+        doc.add(new Field("title", titleTokens, URL_FIELD));
+        doc.add(new Field("content", bodyTokens, BODY_FIELD));
+
+        return Optional.of(doc);
     }
 
     

@@ -1,4 +1,4 @@
-package chapter06.ownir;
+package chapter06;
 
 import java.util.ArrayList;
 import java.util.Collections;

@@ -1,4 +1,4 @@
-package chapter06;
+package chapter06.text;
 
 import java.util.Arrays;
 import java.util.Comparator;
@@ -95,16 +95,16 @@ public class CountVectorizer {
     public CountVectorizer fit(List<List<String>> tokens) {
         Multiset<String> df = HashMultiset.create();
         tokens.forEach(list -> df.addAll(Sets.newHashSet(list)));
-        Multiset<String> domainFrequency = Multisets.filter(df, p -> df.count(p) >= minDf);
+        Multiset<String> docFrequency = Multisets.filter(df, p -> df.count(p) >= minDf);
 
-        List<String> sorted = Ordering.natural().sortedCopy(domainFrequency.elementSet());
+        List<String> sorted = Ordering.natural().sortedCopy(docFrequency.elementSet());
         tokenToIndex = new HashMap<>(sorted.size());
         for (int i = 0; i < sorted.size(); i++) {
             tokenToIndex.put(sorted.get(i), i);
         }
 
         if (applyIdf) {
-            idfs = calculateIdf(domainFrequency, tokenToIndex);
+            idfs = calculateIdf(docFrequency, tokenToIndex);
         }
 
         return this;

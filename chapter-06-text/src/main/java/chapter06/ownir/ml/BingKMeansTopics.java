@@ -13,16 +13,16 @@ import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
-import org.apache.commons.math3.linear.ArrayRealVector;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
-import chapter06.CountVectorizer;
+import chapter06.MatrixUtils;
 import chapter06.Projections;
-import chapter06.TextUtils;
+import chapter06.ScoredIndex;
 import chapter06.UrlRepository;
-import chapter06.ownir.ScoredIndex;
+import chapter06.text.CountVectorizer;
+import chapter06.text.TextUtils;
 import smile.clustering.KMeans;
 import smile.data.SparseDataset;
 import smile.math.matrix.SingularValueDecomposition;
@@ -47,7 +47,7 @@ public class BingKMeansTopics {
         SparseMatrix matrix = index.toSparseMatrix();
         SingularValueDecomposition svd = SingularValueDecomposition.decompose(matrix, 150);
         double[][] lsa = Projections.project(index, svd.getV());
-        lsa = l2normalize(lsa);
+        lsa = MatrixUtils.l2RowNormalize(lsa);
 
         int maxIter = 100;
         int runs = 3;
@@ -82,20 +82,6 @@ public class BingKMeansTopics {
         return matrix.transpose().getData();
     }
 
-
-    private static double[][] l2normalize(double[][] data) {
-        for (int i = 0; i < data.length; i++) {
-            double[] row = data[i];
-            ArrayRealVector vector = new ArrayRealVector(row, false);
-            double norm = vector.getNorm();
-            if (norm != 0) {
-                vector.mapDivideToSelf(norm);
-                data[i] = vector.getDataRef();
-            }
-        }
-
-        return data;
-    }
 
     private static List<List<String>> extractText(UrlRepository urls) throws IOException, FileNotFoundException {
         Path path = Paths.get("data/bing-search-results.txt");
