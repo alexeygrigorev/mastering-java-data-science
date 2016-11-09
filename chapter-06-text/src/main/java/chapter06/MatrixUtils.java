@@ -1,5 +1,6 @@
 package chapter06;
 
+import java.util.Arrays;
 import java.util.Iterator;
 
 import org.apache.commons.math3.linear.ArrayRealVector;
@@ -42,6 +43,14 @@ public class MatrixUtils {
     }
 
     public static double[] vectorSimilarity(double[][] matrix, double[] vector) {
+        if (matrix.length > 1_000_000) {
+            return slicedSimilarity(matrix, vector, 100_000);
+        }
+
+        return mult(matrix, vector);
+    }
+
+    private static double[] mult(double[][] matrix, double[] vector) {
         DenseMatrix A = new DenseMatrix(matrix);
         DenseVector x = new DenseVector(vector);
 
@@ -49,6 +58,25 @@ public class MatrixUtils {
         A.mult(x, result);
         return result.getData();
     }
+
+    public static double[] slicedSimilarity(double[][] matrix, double[] vector, int sliceSize) {
+        int size = matrix.length;
+        double[] result = new double[size];
+
+        for (int i = 0; i < size; i = i + sliceSize) {
+            int end = i + sliceSize;
+            if (end > size) {
+                end = size;
+            }
+
+            double[][] m = Arrays.copyOfRange(matrix, i, end);
+            double[] sim = mult(m, vector);
+            System.arraycopy(sim, 0, result, i, sim.length);
+        }
+
+        return result;
+    }
+
 
     public static double[][] matrixSimilarity(SparseDataset d1, SparseDataset d2) {
         CompRowMatrix M1 = asRowMatrix(d1);

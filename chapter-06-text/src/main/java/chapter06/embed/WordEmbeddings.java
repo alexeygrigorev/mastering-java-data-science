@@ -2,6 +2,7 @@ package chapter06.embed;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -186,4 +187,82 @@ public class WordEmbeddings implements Serializable {
                 .mapToDouble(Double::parseDouble).toArray();
         return ImmutablePair.of(token, vector);
     }
+
+    public static WordEmbeddings readWord2VecBin(String file) throws IOException {
+        return readWord2VecBin(new File(file));
+    }
+
+    public static WordEmbeddings readWord2VecBin(File file) throws IOException {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
+        try (InputStream is = Files.newInputStream(file.toPath());
+                BufferedInputStream bis = new BufferedInputStream(is);
+                DataInputStream dis = new DataInputStream(bis)) {
+
+            int words = Integer.parseInt(readString(dis));
+            int size = Integer.parseInt(readString(dis));
+
+            List<String> vocabulary = new ArrayList<>(words);
+            double[][] embeddings = new double[words][];
+
+            for (int i = 0; i < words; i++) {
+                String word = readString(dis);
+                vocabulary.add(word);
+
+                double[] vector = new double[size];
+                for (int j = 0; j < size; j++) {
+                    vector[j] = readFloat(dis);
+                }
+
+                embeddings[i] = vector;
+            }
+
+            embeddings = MatrixUtils.l2RowNormalize(embeddings);
+            return new WordEmbeddings(embeddings, vocabulary);
+        } finally {
+            LOGGER.debug("loading and converting w2v embeddings from {} took {}", file, stopwatch.stop());
+        }
+    }
+
+    /**
+     * Read a float from a data input stream. taken from deeplearning4j
+     */
+    public static float readFloat(InputStream is) throws IOException {
+        byte[] bytes = new byte[4];
+        is.read(bytes);
+
+        int accum = 0;
+        accum = accum | (bytes[0] & 0xff) << 0;
+        accum = accum | (bytes[1] & 0xff) << 8;
+        accum = accum | (bytes[2] & 0xff) << 16;
+        accum = accum | (bytes[3] & 0xff) << 24;
+
+        return Float.intBitsToFloat(accum);
+    }
+
+
+    /**
+     * Read a string from a data input stream. taken from deeplearning4j
+     */
+    public static String readString(DataInputStream dis) throws IOException {
+        byte[] bytes = new byte[50];
+        byte b = dis.readByte();
+        int i = -1;
+
+        StringBuilder sb = new StringBuilder();
+        while (b != 32 && b != 10) {
+            i++;
+            bytes[i] = b;
+            b = dis.readByte();
+            if (i == 49) {
+                sb.append(new String(bytes, "UTF-8"));
+                i = -1;
+                bytes = new byte[50];
+            }
+        }
+
+        sb.append(new String(bytes, 0, i + 1, "UTF-8"));
+        return sb.toString();
+    }
+    
 }
