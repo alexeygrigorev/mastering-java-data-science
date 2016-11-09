@@ -58,6 +58,7 @@ public class CoreNlpWordEmbeddings {
             System.out.println();
         }
 
+        embeddings.save("bing-embed.bin");
     }
 
     private static List<Document> tokenizeOrLoad() throws Exception {

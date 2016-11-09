@@ -69,7 +69,7 @@ public class PmiCoOccurrenceMatrix {
         return Ordering.natural().sortedCopy(docFrequency.elementSet());
     }
 
-    private static Map<String, Integer> tokenToIndex(List<String> indexToToken) {
+    public static Map<String, Integer> tokenToIndex(List<String> indexToToken) {
         Map<String, Integer> tokenToIndex = new HashMap<>(indexToToken.size());
         for (int i = 0; i < indexToToken.size(); i++) {
             tokenToIndex.put(indexToToken.get(i), i);
