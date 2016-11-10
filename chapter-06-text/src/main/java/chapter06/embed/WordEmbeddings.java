@@ -123,10 +123,9 @@ public class WordEmbeddings implements Serializable {
 
     public static WordEmbeddings load(File file) throws IOException {
         Stopwatch stopwatch = Stopwatch.createStarted();
-        try (InputStream is = Files.newInputStream(file.toPath())) {
-            try (BufferedInputStream bis = new BufferedInputStream(is)) {
-                return SerializationUtils.deserialize(bis);
-            }
+        try (InputStream is = Files.newInputStream(file.toPath());
+                BufferedInputStream bis = new BufferedInputStream(is)) {
+            return SerializationUtils.deserialize(bis);
         } finally {
             LOGGER.debug("loading embeddings from {} took {}", file, stopwatch.stop());
         }
@@ -142,10 +141,9 @@ public class WordEmbeddings implements Serializable {
 
     public void save(File file) throws IOException {
         Stopwatch stopwatch = Stopwatch.createStarted();
-        try (OutputStream os = Files.newOutputStream(file.toPath())) {
-            try (BufferedOutputStream bos = new BufferedOutputStream(os)) {
-                SerializationUtils.serialize(this, bos);
-            }
+        try (OutputStream os = Files.newOutputStream(file.toPath());
+                BufferedOutputStream bos = new BufferedOutputStream(os)) {
+            SerializationUtils.serialize(this, bos);
         } finally {
             LOGGER.debug("saving embeddings to {} took {}", file, stopwatch.stop());
         }
@@ -227,7 +225,7 @@ public class WordEmbeddings implements Serializable {
     /**
      * Read a float from a data input stream. taken from deeplearning4j
      */
-    public static float readFloat(InputStream is) throws IOException {
+    private static float readFloat(InputStream is) throws IOException {
         byte[] bytes = new byte[4];
         is.read(bytes);
 
@@ -240,11 +238,10 @@ public class WordEmbeddings implements Serializable {
         return Float.intBitsToFloat(accum);
     }
 
-
     /**
      * Read a string from a data input stream. taken from deeplearning4j
      */
-    public static String readString(DataInputStream dis) throws IOException {
+    private static String readString(DataInputStream dis) throws IOException {
         byte[] bytes = new byte[50];
         byte b = dis.readByte();
         int i = -1;
