@@ -8,6 +8,8 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.primitives.Doubles;
@@ -25,6 +27,8 @@ import smile.data.SparseDataset;
 
 public class FeatureExtractor {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(FeatureExtractor.class);
+
     private CountVectorizer allVectorizer;
     private CountVectorizer titleVectorizer;
     private CountVectorizer headerVectorizer;
@@ -35,105 +39,122 @@ public class FeatureExtractor {
         Stopwatch stopwatch;
 
         stopwatch = Stopwatch.createStarted();
-        System.out.print("tokenizing all body texts... ");
+        LOGGER.debug("tokenizing all body texts... ");
         List<List<String>> bodyText = data.parallelStream()
                 .map(p -> p.getDocument().getBodyText())
                 .map(t -> TextUtils.tokenizeFilter(t))
                 .collect(Collectors.toList());
-        System.out.println("took " + stopwatch.stop());
+        LOGGER.debug("took " + stopwatch.stop());
 
         stopwatch = Stopwatch.createStarted();
-        System.out.print("tokenizing all titles... ");
+        LOGGER.debug("tokenizing all titles... ");
         List<List<String>> titles = data.parallelStream()
                 .map(p -> p.getDocument().getTitle())
                 .map(t -> TextUtils.tokenizeFilter(t))
                 .collect(Collectors.toList());
-        System.out.println("took " + stopwatch.stop());
+        LOGGER.debug("took " + stopwatch.stop());
 
         stopwatch = Stopwatch.createStarted();
-        System.out.print("tokenizing all headers... ");
+        LOGGER.debug("tokenizing all headers... ");
         List<List<String>> headers = data.parallelStream()
                 .flatMap(p -> p.getDocument().getHeaders().values().stream())
                 .map(t -> TextUtils.tokenizeFilter(t))
                 .collect(Collectors.toList());
-        System.out.println("took " + stopwatch.stop());
+        LOGGER.debug("took " + stopwatch.stop());
 
         List<List<String>> all = new ArrayList<>(bodyText);
         all.addAll(titles);
 
 
         stopwatch = Stopwatch.createStarted();
-        System.out.print("vectorizing all texts... ");
+        LOGGER.debug("vectorizing all texts... ");
         allVectorizer = CountVectorizer.create()
                 .withMinimalDocumentFrequency(5)
                 .withIdfTransformation()
                 .withL2Normalization()
                 .withSublinearTfTransformation()
                 .fit(all);
-        System.out.println("took " + stopwatch.stop());
+        LOGGER.debug("took " + stopwatch.stop());
 
         stopwatch = Stopwatch.createStarted();
-        System.out.print("SVD'ing all texts... ");
+        LOGGER.debug("SVD'ing all texts... ");
         svdAll = new TruncatedSVD(150, true);
         svdAll.fit(allVectorizer.transfrom(all));
-        System.out.println("took " + stopwatch.stop());
+        LOGGER.debug("took " + stopwatch.stop());
 
 
         stopwatch = Stopwatch.createStarted();
-        System.out.print("vectorizing all titles... ");
+        LOGGER.debug("vectorizing all titles... ");
         titleVectorizer = CountVectorizer.create()
                 .withMinimalDocumentFrequency(3)
                 .withIdfTransformation()
                 .withL2Normalization()
                 .fit(titles);
-        System.out.println("took " + stopwatch.stop());
+        LOGGER.debug("took " + stopwatch.stop());
 
         stopwatch = Stopwatch.createStarted();
-        System.out.print("SVD'ing all titles... ");
+        LOGGER.debug("SVD'ing all titles... ");
         svdTitle = new TruncatedSVD(50, true);
         svdTitle.fit(titleVectorizer.transfrom(titles));
-        System.out.println("took " + stopwatch.stop());
+        LOGGER.debug("took " + stopwatch.stop());
 
 
         stopwatch = Stopwatch.createStarted();
-        System.out.print("vectorizing all headers... ");
+        LOGGER.debug("vectorizing all headers... ");
         headerVectorizer = CountVectorizer.create()
                 .withMinimalDocumentFrequency(3)
                 .withIdfTransformation()
                 .withL2Normalization()
                 .fit(headers);
-        System.out.println("took " + stopwatch.stop());
+        LOGGER.debug("took " + stopwatch.stop());
 
         return this;
     }
 
     public DataFrame<Number> transform(List<LabeledQueryDocumentPair> data) throws Exception {
+        Stopwatch stopwatch;
+
+        LOGGER.debug("tranforming the input...");
+
         DataFrame<Object> dataFrame = BeanToJoinery.convert(data, LabeledQueryDocumentPair.class);
         List<HtmlDocument> documents = dataFrame.cast(HtmlDocument.class).col("document");
 
+        LOGGER.debug("tokenizing queries...");
+        stopwatch = Stopwatch.createStarted();
         // cannot use parallel streams here because the order is important
         List<List<String>> query = dataFrame.col("query").stream()
                 .map(q -> (String) q)
                 .map(q -> TextUtils.tokenizeFilter(q))
                 .collect(Collectors.toList());
         SparseDataset queryVectors = allVectorizer.transfrom(query);
+        LOGGER.debug("took {}", stopwatch.stop());
 
+        LOGGER.debug("tokenizing body...");
+        stopwatch = Stopwatch.createStarted();
         List<List<String>> body = documents.stream()
                 .map(d -> d.getBodyText())
                 .map(t -> TextUtils.tokenizeFilter(t))
                 .collect(Collectors.toList());
         SparseDataset bodyVectors = allVectorizer.transfrom(body);
+        LOGGER.debug("took {}", stopwatch.stop());
 
+        LOGGER.debug("computing similarity between query and raw body vectors...");
+        stopwatch = Stopwatch.createStarted();
         double[] queryBodySimilarity = MatrixUtils.rowWiseSparseDot(queryVectors, bodyVectors);
         dataFrame.add("queryBodySimilarity", arrayToList(queryBodySimilarity));
+        LOGGER.debug("took {}", stopwatch.stop());
 
+        LOGGER.debug("computing similarity between query and body in the LSI space...");
+        stopwatch = Stopwatch.createStarted();
         double[][] queryLsi = svdAll.transform(queryVectors);
         double[][] bodyLsi = svdAll.transform(bodyVectors);
 
         double[] queryBodyLsi = MatrixUtils.rowWiseDot(queryLsi, bodyLsi);
         dataFrame.add("queryBodyLsi", arrayToList(queryBodyLsi));
+        LOGGER.debug("took {}", stopwatch.stop());
 
-
+        LOGGER.debug("tokenizing titles...");
+        stopwatch = Stopwatch.createStarted();
         List<List<String>> titles = documents.stream()
                 .map(d -> d.getTitle())
                 .map(t -> TextUtils.tokenizeFilter(t))
@@ -141,19 +162,31 @@ public class FeatureExtractor {
 
         SparseDataset titleVectors = titleVectorizer.transfrom(titles);
         queryVectors = titleVectorizer.transfrom(query);
+        LOGGER.debug("took {}", stopwatch.stop());
 
+        LOGGER.debug("computing similarity between query and raw title vectors...");
+        stopwatch = Stopwatch.createStarted();
         double[] queryTitleSimilarity = MatrixUtils.rowWiseSparseDot(queryVectors, titleVectors);
         dataFrame.add("queryTitleSimilarity", arrayToList(queryTitleSimilarity));
+        LOGGER.debug("took {}", stopwatch.stop());
 
+        LOGGER.debug("computing similarity between query and title in the LSI space...");
+        stopwatch = Stopwatch.createStarted();
         double[][] titleLsi = svdTitle.transform(titleVectors);
         queryLsi = svdTitle.transform(queryVectors);
-
-        WordEmbeddings glove = WordEmbeddings.load("glove.6B.300d.bin");
-        gloveSimilarityDistribution(glove, query, titles, "queryTitlesGlove", dataFrame);
-
         double[] queryTitleLsi = MatrixUtils.rowWiseDot(queryLsi, titleLsi);
         dataFrame.add("queryTitleLsi", arrayToList(queryTitleLsi));
+        LOGGER.debug("took {}", stopwatch.stop());
 
+        WordEmbeddings glove = WordEmbeddings.load("glove.6B.300d.bin");
+
+        LOGGER.debug("computing glove features for titles...");
+        stopwatch = Stopwatch.createStarted();
+        gloveSimilarityDistribution(glove, query, titles, "queryTitlesGlove", dataFrame);
+        LOGGER.debug("took {}", stopwatch.stop());
+
+        LOGGER.debug("tokenizing headers...");
+        stopwatch = Stopwatch.createStarted();
         List<List<String>> headers = documents.stream()
                 .map(d -> d.getHeaders())
                 .map(h -> String.join(" ", h.values()))
@@ -162,9 +195,16 @@ public class FeatureExtractor {
 
         SparseDataset headerVectors = headerVectorizer.transfrom(headers);
         queryVectors = headerVectorizer.transfrom(query);
+        LOGGER.debug("took {}", stopwatch.stop());
 
+        LOGGER.debug("computing similarity between query and raw headers vectors...");
+        stopwatch = Stopwatch.createStarted();
         double[] queryHeaderSimilarity = MatrixUtils.rowWiseSparseDot(queryVectors, headerVectors);
         dataFrame.add("queryHeaderSimilarity", arrayToList(queryHeaderSimilarity));
+        LOGGER.debug("took {}", stopwatch.stop());
+
+        LOGGER.debug("computing individual headers featurse...");
+        stopwatch = Stopwatch.createStarted();
 
         String[] headerTags = { "h1", "h2", "h3" };
         for (String headerTag : headerTags) {
@@ -181,6 +221,7 @@ public class FeatureExtractor {
 
             gloveSimilarityDistribution(glove, query, header, "queryHeader" + headerTag + "Glove", dataFrame);
         }
+        LOGGER.debug("took {}", stopwatch.stop());
 
         DataFrame<Object> result = dataFrame.drop("document", "query", "train");
         return result.cast(Number.class);

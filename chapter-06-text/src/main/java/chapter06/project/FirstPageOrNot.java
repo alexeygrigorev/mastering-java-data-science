@@ -14,13 +14,10 @@ import org.apache.commons.lang3.SerializationUtils;
 import chapter06.cv.Dataset;
 import chapter06.ml.LibLinear;
 import chapter06.ml.Metrics;
-import de.bwaldvogel.liblinear.Model;
-import de.bwaldvogel.liblinear.Parameter;
-import de.bwaldvogel.liblinear.SolverType;
 import joinery.DataFrame;
+import smile.classification.DecisionTree.SplitRule;
 import smile.classification.RandomForest;
 import smile.classification.SoftClassifier;
-import smile.classification.DecisionTree.SplitRule;
 
 public class FirstPageOrNot {
 
