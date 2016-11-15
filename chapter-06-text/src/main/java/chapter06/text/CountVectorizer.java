@@ -1,5 +1,6 @@
 package chapter06.text;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -17,7 +18,7 @@ import com.google.common.collect.Sets;
 import smile.data.SparseDataset;
 import smile.math.SparseArray;
 
-public class CountVectorizer {
+public class CountVectorizer implements Serializable {
 
     public static class CountVectorizerBuilder {
         private int minDf = 5;

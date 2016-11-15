@@ -3,6 +3,7 @@ package chapter06.project;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -40,6 +41,39 @@ public class FirstPageOrNot {
 
         double auc = auc(rf, testDataset);
         System.out.println(auc);
+
+        Dataset full = concat(trainDataset, testDataset);
+        RandomForest finalModel = new RandomForest.Trainer(100)
+                .setMaxNodes(128)
+                .setNumRandomFeatures(6)
+                .setSamplingRates(0.6)
+                .setSplitRule(SplitRule.GINI)
+                .train(full.getX(), full.getYAsInt());
+
+        Path path = Paths.get("project/random-forest-model.bin");
+        try (OutputStream os = Files.newOutputStream(path)) {
+            SerializationUtils.serialize(finalModel, os);
+        }
+    }
+
+    public static Dataset concat(Dataset d1, Dataset d2) {
+        double[][] X = concat(d1.getX(), d2.getX());
+        double[] y = concat(d1.getY(), d2.getY());
+        return new Dataset(X, y);
+    }
+
+    public static double[] concat(double[] y1, double[] y2) {
+        double[] y = new double[y1.length + y2.length];
+        System.arraycopy(y1, 0, y, 0, y1.length);
+        System.arraycopy(y2, 0, y, y1.length, y2.length);
+        return y;
+    }
+
+    public static double[][] concat(double[][] X1, double[][] X2) {
+        double[][] X = new double[X1.length + X2.length][];
+        System.arraycopy(X1, 0, X, 0, X1.length);
+        System.arraycopy(X2, 0, X, X1.length, X2.length);
+        return X;
     }
 
     public static double auc(SoftClassifier<double[]> model, Dataset dataset) {

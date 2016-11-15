@@ -1,10 +1,12 @@
 package chapter06;
 
+import java.io.Serializable;
+
 import smile.data.SparseDataset;
 import smile.math.matrix.SingularValueDecomposition;
 import smile.math.matrix.SparseMatrix;
 
-public class TruncatedSVD {
+public class TruncatedSVD implements Serializable {
 
     private final int n;
     private final boolean normalize;

@@ -33,6 +33,7 @@ import org.jsoup.select.Elements;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
+import com.google.common.primitives.Doubles;
 
 import chapter06.UrlRepository;
 import chapter06.cv.CV;
@@ -48,28 +49,49 @@ public class PrepareData {
         List<PositiveNegativeQueries> queryPairs = prepareTrainTestPairs(queries);
         List<LabeledQueryDocumentPair> labeledData = preparedLabeledData(queries, queryPairs, docs);
 
-        List<LabeledQueryDocumentPair> train = labeledData.stream()
+        List<QueryDocumentPair> train = labeledData.stream()
                 .filter(p -> p.isTrain())
+                .map(p -> p.unwrapToQueryDocumentPair())
                 .collect(Collectors.toList());
-        List<LabeledQueryDocumentPair> test = labeledData.stream()
+        double[] trainY = labeledData.stream()
+                .filter(p -> p.isTrain())
+                .mapToDouble(p -> p.getRelevance()).toArray();
+
+        List<QueryDocumentPair> test = labeledData.stream()
                 .filter(p -> !p.isTrain())
+                .map(p -> p.unwrapToQueryDocumentPair())
                 .collect(Collectors.toList());
+        double[] testY = labeledData.stream()
+                .filter(p -> !p.isTrain())
+                .mapToDouble(p -> p.getRelevance()).toArray();
 
         FeatureExtractor featureExtractor = new FeatureExtractor().fit(train);
-        DataFrame<Number> trainFeatures = featureExtractor.transform(train);
-        DataFrame<Number> testFeatures = featureExtractor.transform(test);
+        save("project/feature-extractor.bin", featureExtractor);
 
-        save("data/project-train-features.bin", trainFeatures);
-        save("data/project-test-features.bin", testFeatures);
+        DataFrame<Double> trainFeatures = featureExtractor.transform(train);
+        trainFeatures.add("relevance", Doubles.asList(trainY));
+        save("project/project-train-features.bin", trainFeatures);
 
+        DataFrame<Double> testFeatures = featureExtractor.transform(test);
+        testFeatures.add("relevance", Doubles.asList(testY));
+        save("project/project-test-features.bin", testFeatures);
     }
 
-    private static void save(String filepath, DataFrame<Number> df) throws IOException {
+    private static void save(String filepath, DataFrame<Double> df) throws IOException {
         Path path = Paths.get(filepath);
         try (OutputStream os = Files.newOutputStream(path)) {
             try (BufferedOutputStream bos = new BufferedOutputStream(os)) {
-                DfHolder<Number> holder = new DfHolder<>(df);
+                DfHolder<Double> holder = new DfHolder<>(df);
                 SerializationUtils.serialize(holder, bos);
+            }
+        }
+    }
+
+    private static void save(String filepath, FeatureExtractor fe) throws IOException {
+        Path path = Paths.get(filepath);
+        try (OutputStream os = Files.newOutputStream(path)) {
+            try (BufferedOutputStream bos = new BufferedOutputStream(os)) {
+                SerializationUtils.serialize(fe, bos);
             }
         }
     }
@@ -107,13 +129,9 @@ public class PrepareData {
 
     private static Map<String, HtmlDocument> readAllDocuments(ArrayListMultimap<String, String> queries)
             throws Exception {
-        File cache = new File("data/html-cache.bin");
+        File cache = new File("project/html-cache.bin");
         if (cache.exists()) {
-            try (InputStream is = Files.newInputStream(cache.toPath())) {
-                try (BufferedInputStream bis = new BufferedInputStream(is)) {
-                    return SerializationUtils.deserialize(is);
-                }
-            }
+            return readDocumentsFromFile(cache);
         }
 
         Map<String, HtmlDocument> docs = new ConcurrentHashMap<>();
@@ -138,6 +156,14 @@ public class PrepareData {
         }
 
         return docsCopy;
+    }
+
+    public static Map<String, HtmlDocument> readDocumentsFromFile(File cache) throws IOException {
+        try (InputStream is = Files.newInputStream(cache.toPath())) {
+            try (BufferedInputStream bis = new BufferedInputStream(is)) {
+                return SerializationUtils.deserialize(is);
+            }
+        }
     }
 
     private static Optional<HtmlDocument> extractText(UrlRepository urls, String url) {
@@ -286,8 +312,75 @@ public class PrepareData {
         public boolean isTrain() {
             return train;
         }
+
+        public QueryDocumentPair unwrapToQueryDocumentPair() {
+            String url = document.getUrl();
+            String title = document.getTitle();
+            String bodyText = document.getBodyText();
+            ArrayListMultimap<String, String> headers = document.getHeaders();
+            String allHeaders = String.join(" ", headers.values());
+            String h1 = String.join(" ", headers.get("h1"));
+            String h2 = String.join(" ", headers.get("h2"));
+            String h3 = String.join(" ", headers.get("h3"));
+            return new QueryDocumentPair(query, url, title, bodyText, allHeaders, h1, h2, h3);
+        }
     }
 
+    public static class QueryDocumentPair {
+        private final String query;
+        private final String url;
+        private final String title;
+        private final String bodyText;
+        private final String allHeaders;
+        private final String h1;
+        private final String h2;
+        private final String h3;
+
+        public QueryDocumentPair(String query, String url, String title, String bodyText, String allHeaders, String h1,
+                String h2, String h3) {
+            this.query = query;
+            this.url = url;
+            this.title = title;
+            this.bodyText = bodyText;
+            this.allHeaders = allHeaders;
+            this.h1 = h1;
+            this.h2 = h2;
+            this.h3 = h3;
+        }
+
+        public String getQuery() {
+            return query;
+        }
+
+        public String getUrl() {
+            return url;
+        }
+
+        public String getTitle() {
+            return title;
+        }
+
+        public String getBodyText() {
+            return bodyText;
+        }
+
+        public String getAllHeaders() {
+            return allHeaders;
+        }
+
+        public String getH1() {
+            return h1;
+        }
+
+        public String getH2() {
+            return h2;
+        }
+
+        public String getH3() {
+            return h3;
+        }
+    }
+    
     private static class PositiveNegativeQueries {
         private final String query;
         private final List<String> negativeQueries;
