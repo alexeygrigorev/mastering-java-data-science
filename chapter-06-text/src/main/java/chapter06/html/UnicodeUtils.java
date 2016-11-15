@@ -1,22 +1,11 @@
-package chapter06.embed;
-
-import java.util.Set;
-import java.util.regex.Pattern;
+package chapter06.html;
 
 import org.apache.commons.lang3.text.translate.AggregateTranslator;
 import org.apache.commons.lang3.text.translate.CharSequenceTranslator;
 import org.apache.commons.lang3.text.translate.EntityArrays;
 import org.apache.commons.lang3.text.translate.LookupTranslator;
-import org.jsoup.nodes.Element;
-import org.jsoup.nodes.Node;
-import org.jsoup.nodes.TextNode;
-import org.jsoup.select.NodeVisitor;
 
-import com.google.common.collect.ImmutableSet;
-
-public class JsoupTextExtractor implements NodeVisitor {
-    public static final String BLOCK_SEPARATOR = "[::new_line::]";
-    public static final Pattern BLOCK_SEPARATOR_PATTERN = Pattern.compile("(" + Pattern.quote(BLOCK_SEPARATOR) + ")+");
+public class UnicodeUtils {
 
     private static final CharSequence[][] UNICODE_TRANSLATION = { 
             { "\u00A0", " " }, { "\u00AB", "\"" }, { "\u00AD", "-" }, { "\u00B4", "'" }, { "\u00BB", "\"" },
@@ -39,65 +28,21 @@ public class JsoupTextExtractor implements NodeVisitor {
             { "\u27E9", ">" }, { "\u2983", "{" }, { "\u2984", "}" }, { "\u3003", "\"" }, { "\u3008", "<" },
             { "\u3009", ">" }, { "\u301B", "]" }, { "\u301C", "~" }, { "\u301D", "\"" }, { "\u301E", "\"" },
             { "\uE100", "!" },  { "\u2048", "?!" }, { "\u202F", " " },
-            { "\uFEFF", " " }, { "\uFFFD", " " }, { "\u0004", " " }, { "\u0008", " " }, { "\u000F", " " }, 
+            { "\uFEFF", " " }, { "\uFFFD", " " }, { "\u0004", " " }, { "\u0008", " " }, { "\u0009", " " }, 
+            { "\u0009", " " }, { "\u000B", " " }, { "\u000C", " " },
+            { String.valueOf((char) 0x000A), " " }, { String.valueOf((char) 0x000D), " " },
+            { "\u000E", " " }, { "\u000F", " " }, 
             { "\u0012", " " }, { "\u0015", " " }, { "\u0017", " " }, { "\u0019", " " }, { "\u009B", " " }, 
             { "\u038D", " " }, 
     };
 
-
     private static final CharSequenceTranslator TRANSLATOR = new AggregateTranslator(
-            new LookupTranslator(UNICODE_TRANSLATION), 
-            new LookupTranslator(EntityArrays.ISO8859_1_UNESCAPE()),
+            new LookupTranslator(UNICODE_TRANSLATION), new LookupTranslator(EntityArrays.ISO8859_1_UNESCAPE()),
             new LookupTranslator(EntityArrays.BASIC_UNESCAPE()),
             new LookupTranslator(EntityArrays.HTML40_EXTENDED_UNESCAPE()));
 
-    private static final Pattern WHITESPACE = Pattern.compile("[\u00A0\\s]+", Pattern.DOTALL);
-
-    public static final Set<String> BLOCK_TAGS = ImmutableSet.of("h1", "h2", "h3", "h4", "h5", "h6", "p", "li", "ol",
-            "br", "hr", "tr", "td", "div", "pre", "option");
-
-    private final StringBuilder allText = new StringBuilder(100);
-
-    @Override
-    public void head(Node node, int depth) {
-        if (node instanceof TextNode) {
-            TextNode textNode = (TextNode) node;
-            String text = textNode.getWholeText();
-            text = text.trim();
-            if (text.isEmpty()) {
-                return;
-            }
-
-            text = WHITESPACE.matcher(text).replaceAll(" ").trim();
-            if (text.isEmpty()) {
-                return;
-            }
-
-            text = TRANSLATOR.translate(text);
-            allText.append(text).append(" ");
-        }
-    }
-
-    @Override
-    public void tail(Node node, int depth) {
-        if (node instanceof Element) {
-            Element element = (Element) node;
-            String tagName = element.tagName().toLowerCase();
-            if (!BLOCK_TAGS.contains(tagName)) {
-                return;
-            }
-            allText.append(BLOCK_SEPARATOR);
-        }
-    }
-
-    public String getText() {
-        return getText("\n");
-    }
-
-    public String getText(String newLineSeparator) {
-        String text = allText.toString();
-        String result = BLOCK_SEPARATOR_PATTERN.matcher(text).replaceAll("\n");
-        return result;
+    public static final String fixUnicode(String input) {
+        return TRANSLATOR.translate(input);
     }
 
 }

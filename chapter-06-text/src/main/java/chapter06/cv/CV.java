@@ -10,8 +10,7 @@ import org.apache.commons.lang3.Validate;
 
 public class CV {
 
-    public static List<Split> kfold(Dataset dataset, int k, boolean shuffle, long seed) {
-        int length = dataset.length();
+    public static List<IndexSplit> kfold(int length, int k, boolean shuffle, long seed) {
         Validate.isTrue(k < length);
 
         int[] indexes = IntStream.range(0, length).toArray();
@@ -20,21 +19,21 @@ public class CV {
         }
 
         int[][] folds = prepareFolds(indexes, k);
-        List<Split> result = new ArrayList<>();
+        List<IndexSplit> result = new ArrayList<>();
 
         for (int i = 0; i < k; i++) {
             int[] testIdx = folds[i];
             int[] trainIdx = combineTrainFolds(folds, indexes.length, i);
-            result.add(Split.fromIndexes(dataset, trainIdx, testIdx));
+            result.add(new IndexSplit(trainIdx, testIdx));
         }
 
         return result;
     }
 
-    public static Split trainTestSplit(Dataset dataset, double testRatio, boolean shuffle, long seed) {
+    public static IndexSplit trainTestSplit(int length, double testRatio, boolean shuffle, long seed) {
         Validate.isTrue(testRatio > 0.0 && testRatio < 1.0, "testRatio must be in (0, 1) interval");
 
-        int[] indexes = IntStream.range(0, dataset.length()).toArray();
+        int[] indexes = IntStream.range(0, length).toArray();
         if (shuffle) {
             shuffle(indexes, seed);
         }
@@ -44,12 +43,15 @@ public class CV {
         int[] trainIndex = Arrays.copyOfRange(indexes, 0, trainSize);
         int[] testIndex = Arrays.copyOfRange(indexes, trainSize, indexes.length);
 
-        return Split.fromIndexes(dataset, trainIndex, testIndex);
+        return new IndexSplit(trainIndex, testIndex);
     }
 
     public static void shuffle(int[] indexes, long seed) {
         Random rnd = new Random(seed);
+        shuffle(indexes, rnd);
+    }
 
+    public static void shuffle(int[] indexes, Random rnd) {
         for (int i = indexes.length - 1; i > 0; i--) {
             int index = rnd.nextInt(i + 1);
 
@@ -90,4 +92,5 @@ public class CV {
 
         return result;
     }
+
 }

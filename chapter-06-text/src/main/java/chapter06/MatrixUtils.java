@@ -1,9 +1,15 @@
 package chapter06;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.commons.math3.linear.ArrayRealVector;
+
+import com.google.common.collect.Sets;
 
 import no.uib.cipr.matrix.DenseMatrix;
 import no.uib.cipr.matrix.DenseVector;
@@ -77,7 +83,6 @@ public class MatrixUtils {
         return result;
     }
 
-
     public static double[][] matrixSimilarity(SparseDataset d1, SparseDataset d2) {
         CompRowMatrix M1 = asRowMatrix(d1);
         CompRowMatrix M2 = asRowMatrix(d2);
@@ -133,4 +138,61 @@ public class MatrixUtils {
 
         return data;
     }
+
+    public static double[] rowWiseDot(double[][] m1, double[][] m2) {
+        Validate.isTrue(m1.length == m2.length);
+        Validate.isTrue(m1[0].length == m2[0].length);
+
+        int nrow = m1.length;
+        double[] result = new double[nrow];
+
+        for (int i = 0; i < nrow; i++) {
+            result[i] = denseDot(m1[i], m2[i]);
+        }
+
+        return result;
+    }
+
+    private static double denseDot(double[] arr1, double[] arr2) {
+        ArrayRealVector v1 = new ArrayRealVector(arr1, false);
+        ArrayRealVector v2 = new ArrayRealVector(arr2, false);
+        return v1.dotProduct(v2);
+    }
+
+    public static double[] rowWiseSparseDot(SparseDataset m1, SparseDataset m2) {
+        Validate.isTrue(m1.size() == m2.size(), "the number of rows are diffrent: %d != %d", m1.size(), m2.size());
+        Validate.isTrue(m1.ncols() == m2.ncols(), "the number of cols are diffrent: %d != %d", m1.ncols(), m2.ncols());
+
+        int nrow = m1.size();
+        double[] result = new double[nrow];
+
+        for (int i = 0; i < nrow; i++) {
+            result[i] = sparseDot(m1.get(i).x, m2.get(i).x);
+        }
+
+        return result;
+    }
+
+    private static double sparseDot(SparseArray x1, SparseArray x2) {
+        Map<Integer, Double> row1 = wrapToMap(x1);
+        Map<Integer, Double> row2 = wrapToMap(x2);
+
+        double result = 0.0;
+
+        Set<Integer> common = Sets.intersection(row1.keySet(), row2.keySet());
+        for (Integer idx : common) {
+            result = result + row1.get(idx) * row2.get(idx);
+        }
+
+        return result;
+    }
+
+    private static Map<Integer, Double> wrapToMap(SparseArray vec) {
+        Map<Integer, Double> map = new HashMap<>();
+        for (Entry el : vec) {
+            map.put(el.i, el.x);
+        }
+        return map;
+    }
+
 }

@@ -158,6 +158,24 @@
       <version>1.9.2</version>
     </dependency>
 
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-compress</artifactId>
+      <version>1.12</version>
+    </dependency>
+
+    <dependency>
+      <groupId>de.bwaldvogel</groupId>
+      <artifactId>liblinear</artifactId>
+      <version>1.95</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.github.haifengl</groupId>
+      <artifactId>smile-nlp</artifactId>
+      <version>1.2.0</version>
+    </dependency>
+
 
     <!-- Tests -->
     <dependency>

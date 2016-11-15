@@ -24,6 +24,7 @@ import com.google.common.base.Stopwatch;
 import chapter06.ScoredToken;
 import chapter06.UrlRepository;
 import chapter06.embed.WordEmbeddings.DimRedMethod;
+import chapter06.html.JsoupTextExtractor;
 import chapter06.text.Document;
 
 public class CoreNlpWordEmbeddings {
@@ -45,7 +46,7 @@ public class CoreNlpWordEmbeddings {
 
         List<String> samples = Arrays.asList("cat", "laptop", "germany", "adidas", "limit");
 
-        WordEmbeddings embeddings = WordEmbeddings.create(coocMatrix, 150, DimRedMethod.SVD);
+        WordEmbeddings embeddings = WordEmbeddings.createFromCoOccurrence(coocMatrix, 150, DimRedMethod.SVD);
 
         for (String sample : samples) {
             System.out.println("most similar for " + sample);

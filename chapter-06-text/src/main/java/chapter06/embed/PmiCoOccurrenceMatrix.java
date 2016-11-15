@@ -29,7 +29,6 @@ public class PmiCoOccurrenceMatrix {
         this.pmiMatrix = pmiMatrix;
     }
 
-
     public Map<String, Integer> getTokenToIndex() {
         return tokenToIndex;
     }
@@ -128,11 +127,11 @@ public class PmiCoOccurrenceMatrix {
     }
 
     private static SparseDataset buildPmiMatrix(Map<String, Integer> tokenToIndex, Multiset<String> counts,
-            Table<String, String, Integer> coOccurrence, double smooting) {
+            Table<String, String, Integer> coOccurrence, double smoothing) {
         int ncol = tokenToIndex.size();
         int nuniq = counts.entrySet().size();
 
-        double totalNumTokens = counts.size() + nuniq * smooting;
+        double totalNumTokens = counts.size() + nuniq * smoothing;
         double logTotalNumTokens = Math.log(totalNumTokens);
 
         SparseDataset result = new SparseDataset(ncol);
@@ -141,7 +140,7 @@ public class PmiCoOccurrenceMatrix {
             String token = mainTokenEntry.getKey();
             int rowInx = mainTokenEntry.getValue();
 
-            double mainTokenCount = counts.count(token) + smooting;
+            double mainTokenCount = counts.count(token) + smoothing;
             double logMainTokenCount = Math.log(mainTokenCount);
 
             Map<String, Integer> tokenCooccurrence = coOccurrence.row(token);
@@ -152,9 +151,9 @@ public class PmiCoOccurrenceMatrix {
                     continue;
                 }
 
-                double otherTokenCount = counts.count(otherToken) + smooting;
+                double otherTokenCount = counts.count(otherToken) + smoothing;
                 double logOtherTokenCount = Math.log(otherTokenCount);
-                double coOccCount = otherTokenEntry.getValue() + smooting;
+                double coOccCount = otherTokenEntry.getValue() + smoothing;
                 double logCoOccCount = Math.log(coOccCount);
 
                 double pmi = logCoOccCount + logTotalNumTokens - logMainTokenCount - logOtherTokenCount;

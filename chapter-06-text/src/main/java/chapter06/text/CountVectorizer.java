@@ -59,6 +59,12 @@ public class CountVectorizer {
             return new CountVectorizer(minDf, applyIdf, sublinearTf, normalize);
         }
 
+        public CountVectorizer fit(List<List<String>> tokens) {
+            CountVectorizer vectorizer = build();
+            vectorizer.fit(tokens);
+            return vectorizer;
+        }
+
     }
 
     public static CountVectorizerBuilder create() {
@@ -126,11 +132,16 @@ public class CountVectorizer {
     }
 
     public SparseDataset transfrom(List<List<String>> tokens) {
+        int nrow = tokens.size();
         int ncol = tokenToIndex.size();
+
         SparseDataset tfidf = new SparseDataset(ncol);
 
-        for (int rowNo = 0; rowNo < tokens.size(); rowNo++) {
+        for (int rowNo = 0; rowNo < nrow; rowNo++) {
+            tfidf.set(rowNo, 0, 0.0);
+
             Multiset<String> row = HashMultiset.create(tokens.get(rowNo));
+
             for (Entry<String> e : row.entrySet()) {
                 String token = e.getElement();
                 double tf = e.getCount();

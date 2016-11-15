@@ -10,6 +10,9 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
 
+import smile.nlp.stemmer.PorterStemmer;
+import smile.nlp.stemmer.Stemmer;
+
 public class TextUtils {
 
     public static final Set<String> EN_STOPWORDS = ImmutableSet.of("a", "an", "and", "are", "as", "at", "be",
@@ -23,6 +26,29 @@ public class TextUtils {
         return Arrays.stream(split)
                 .map(String::trim)
                 .filter(s -> s.length() > 2)
+                .collect(Collectors.toList());
+    }
+
+    public static List<String> tokenizeFilter(String line) {
+        Pattern pattern = Pattern.compile("\\W+");
+        String[] split = pattern.split(line.toLowerCase());
+        return Arrays.stream(split)
+                .map(String::trim)
+                .filter(s -> s.length() > 2)
+                .filter(s -> !isStopword(s))
+                .collect(Collectors.toList());
+    }
+
+    public static List<String> tokenizeFilterStem(String line) {
+        Stemmer stemmer = new PorterStemmer();
+
+        Pattern pattern = Pattern.compile("\\W+");
+        String[] split = pattern.split(line.toLowerCase());
+        return Arrays.stream(split)
+                .map(String::trim)
+                .filter(s -> s.length() > 2)
+                .filter(s -> !isStopword(s))
+                .map(s -> stemmer.stem(s))
                 .collect(Collectors.toList());
     }
 
@@ -50,6 +76,10 @@ public class TextUtils {
     }
 
     public static List<String> ngrams(List<String> tokens, int n) {
+        if (n == 1) {
+            return tokens;
+        }
+
         int size = tokens.size();
         if (n > size) {
             return Collections.emptyList();

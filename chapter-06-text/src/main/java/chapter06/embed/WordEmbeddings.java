@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.SerializationUtils;
@@ -23,7 +24,6 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Stopwatch;
 
 import chapter06.MatrixUtils;
@@ -75,7 +75,18 @@ public class WordEmbeddings implements Serializable {
         return result;
     }
 
-    public static WordEmbeddings create(PmiCoOccurrenceMatrix pmiCooc, int dimensionality, DimRedMethod dimRed) {
+    public Optional<double[]> representation(String token) {
+        if (tokenToIndex.containsKey(token)) {
+            int idx = tokenToIndex.get(token);
+            double[] vector = embeddings[idx];
+            return Optional.of(vector);
+        }
+
+        return Optional.empty();
+    }
+
+    public static WordEmbeddings createFromCoOccurrence(PmiCoOccurrenceMatrix pmiCooc, int dimensionality,
+            DimRedMethod dimRed) {
         double[][] embedding;
 
         SparseDataset matrix = pmiCooc.getPmiMatrix();
