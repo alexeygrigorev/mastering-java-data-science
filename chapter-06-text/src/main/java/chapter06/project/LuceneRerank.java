@@ -78,6 +78,7 @@ public class LuceneRerank {
             QueryDocumentPair pair = new QueryDocumentPair(userQuery, url, title, bodyText, allHeaders, h1, h2, h3);
             data.add(pair);
         }
+
         return data;
     }
 

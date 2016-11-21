@@ -36,7 +36,7 @@ public class CreateLuceneIndex {
             String url = htmlDoc.getUrl();
             String title = htmlDoc.getTitle();
             String bodyText = htmlDoc.getBodyText();
-            ArrayListMultimap<String,String> headers = htmlDoc.getHeaders();
+            ArrayListMultimap<String, String> headers = htmlDoc.getHeaders();
             String allHeaders = String.join(" ", headers.values());
             String h1 = String.join(" ", headers.get("h1"));
             String h2 = String.join(" ", headers.get("h2"));
@@ -54,7 +54,9 @@ public class CreateLuceneIndex {
             writer.addDocument(doc);
         }
 
+        writer.commit();
         writer.close();
+        directory.close();
     }
 
     private static FieldType createUrlFieldType() {
@@ -73,6 +75,5 @@ public class CreateLuceneIndex {
         field.freeze();
         return field;
     }
-    
-}
 
+}

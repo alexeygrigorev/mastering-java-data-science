@@ -44,10 +44,9 @@ public class CoreNlpWordEmbeddings {
         PmiCoOccurrenceMatrix coocMatrix = PmiCoOccurrenceMatrix.fit(documents, minDf, window, smoothing);
         System.out.println("building co-occurrence matrix took " + stopwatch.stop());
 
-        List<String> samples = Arrays.asList("cat", "laptop", "germany", "adidas", "limit");
-
         WordEmbeddings embeddings = WordEmbeddings.createFromCoOccurrence(coocMatrix, 150, DimRedMethod.SVD);
 
+        List<String> samples = Arrays.asList("cat", "laptop", "germany", "adidas", "limit");
         for (String sample : samples) {
             System.out.println("most similar for " + sample);
 

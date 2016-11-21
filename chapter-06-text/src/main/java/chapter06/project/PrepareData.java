@@ -77,54 +77,20 @@ public class PrepareData {
         save("project/project-test-features.bin", testFeatures);
     }
 
-    private static void save(String filepath, DataFrame<Double> df) throws IOException {
-        Path path = Paths.get(filepath);
-        try (OutputStream os = Files.newOutputStream(path)) {
-            try (BufferedOutputStream bos = new BufferedOutputStream(os)) {
-                DfHolder<Double> holder = new DfHolder<>(df);
-                SerializationUtils.serialize(holder, bos);
-            }
+    private static ArrayListMultimap<String, String> readRankingData() throws IOException {
+        Path path = Paths.get("data/bing-search-results.txt");
+        List<String> lines = FileUtils.readLines(path.toFile(), StandardCharsets.UTF_8);
+
+        ArrayListMultimap<String, String> queries = ArrayListMultimap.create();
+
+        for (String stringLine : lines) {
+            String[] split = stringLine.split("\t");
+            String query = split[0];
+            String url = split[3];
+            queries.put(query, url);
         }
-    }
 
-    private static void save(String filepath, FeatureExtractor fe) throws IOException {
-        Path path = Paths.get(filepath);
-        try (OutputStream os = Files.newOutputStream(path)) {
-            try (BufferedOutputStream bos = new BufferedOutputStream(os)) {
-                SerializationUtils.serialize(fe, bos);
-            }
-        }
-    }
-
-    private static List<LabeledQueryDocumentPair> preparedLabeledData(
-            ArrayListMultimap<String, String> queries, List<PositiveNegativeQueries> queryPairs,
-            Map<String, HtmlDocument> docs) {
-        List<LabeledQueryDocumentPair> labeledData = new ArrayList<>();
-
-        for (PositiveNegativeQueries pair : queryPairs) {
-            String query = pair.getQuery();
-
-            List<String> positive = queries.get(query);
-            for (String url : positive) {
-                if (!docs.containsKey(url)) {
-                    continue;
-                }
-                HtmlDocument doc = docs.get(url);
-                labeledData.add(new LabeledQueryDocumentPair(query, doc, 1, pair.isTrain()));
-            }
-
-            for (String negQuery : pair.getNegativeQueries()) {
-                List<String> negative = queries.get(negQuery);
-                for (String url : negative) {
-                    if (!docs.containsKey(url)) {
-                        continue;
-                    }
-                    HtmlDocument doc = docs.get(url);
-                    labeledData.add(new LabeledQueryDocumentPair(query, doc, 0, pair.isTrain()));
-                }
-            }
-        }
-        return labeledData;
+        return queries;
     }
 
     private static Map<String, HtmlDocument> readAllDocuments(ArrayListMultimap<String, String> queries)
@@ -197,22 +163,6 @@ public class PrepareData {
         return Optional.of(new HtmlDocument(url, title, headers, bodyText));
     }
 
-    private static ArrayListMultimap<String, String> readRankingData() throws IOException {
-        Path path = Paths.get("data/bing-search-results.txt");
-        List<String> lines = FileUtils.readLines(path.toFile(), StandardCharsets.UTF_8);
-
-        ArrayListMultimap<String, String> queries = ArrayListMultimap.create();
-
-        for (String stringLine : lines) {
-            String[] split = stringLine.split("\t");
-            String query = split[0];
-            String url = split[3];
-            queries.put(query, url);
-        }
-
-        return queries;
-    }
-
     private static List<PositiveNegativeQueries> prepareTrainTestPairs(Multimap<String, String> queries) {
         List<String> allQueries = new ArrayList<>(queries.keySet());
         IndexSplit split = CV.trainTestSplit(allQueries.size(), 0.5, true, 1);
@@ -252,6 +202,56 @@ public class PrepareData {
         List<String> othersList = new ArrayList<>(others);
         Collections.shuffle(othersList, rnd);
         return othersList.subList(0, size);
+    }
+
+    private static List<LabeledQueryDocumentPair> preparedLabeledData(
+            ArrayListMultimap<String, String> queries, List<PositiveNegativeQueries> queryPairs,
+            Map<String, HtmlDocument> docs) {
+        List<LabeledQueryDocumentPair> labeledData = new ArrayList<>();
+
+        for (PositiveNegativeQueries pair : queryPairs) {
+            String query = pair.getQuery();
+
+            List<String> positive = queries.get(query);
+            for (String url : positive) {
+                if (!docs.containsKey(url)) {
+                    continue;
+                }
+                HtmlDocument doc = docs.get(url);
+                labeledData.add(new LabeledQueryDocumentPair(query, doc, 1, pair.isTrain()));
+            }
+
+            for (String negQuery : pair.getNegativeQueries()) {
+                List<String> negative = queries.get(negQuery);
+                for (String url : negative) {
+                    if (!docs.containsKey(url)) {
+                        continue;
+                    }
+                    HtmlDocument doc = docs.get(url);
+                    labeledData.add(new LabeledQueryDocumentPair(query, doc, 0, pair.isTrain()));
+                }
+            }
+        }
+        return labeledData;
+    }
+
+    private static void save(String filepath, DataFrame<Double> df) throws IOException {
+        Path path = Paths.get(filepath);
+        try (OutputStream os = Files.newOutputStream(path)) {
+            try (BufferedOutputStream bos = new BufferedOutputStream(os)) {
+                DfHolder<Double> holder = new DfHolder<>(df);
+                SerializationUtils.serialize(holder, bos);
+            }
+        }
+    }
+
+    private static void save(String filepath, FeatureExtractor fe) throws IOException {
+        Path path = Paths.get(filepath);
+        try (OutputStream os = Files.newOutputStream(path)) {
+            try (BufferedOutputStream bos = new BufferedOutputStream(os)) {
+                SerializationUtils.serialize(fe, bos);
+            }
+        }
     }
 
     public static class HtmlDocument implements Serializable {

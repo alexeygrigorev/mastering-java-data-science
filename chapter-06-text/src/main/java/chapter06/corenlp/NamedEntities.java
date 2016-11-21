@@ -1,17 +1,11 @@
 package chapter06.corenlp;
 
-import static com.alexeygrigorev.rseq.Matchers.x;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
-
-import com.alexeygrigorev.rseq.Pattern;
-import com.alexeygrigorev.rseq.XMatcher;
 
 import chapter06.text.TextUtils;
 import edu.stanford.nlp.ling.CoreAnnotations.LemmaAnnotation;
@@ -68,20 +62,10 @@ public class NamedEntities {
 
     public static void main(String[] args) {
         NamedEntities tokenizer = new NamedEntities();
-        List<Word> tokens = tokenizer.tokenize("My name is Justin Bieber, I live in Canada.");
+        String sentence = "My name is Justin Bieber, I live in New York.";
+        List<Word> tokens = tokenizer.tokenize(sentence);
         System.out.println(tokens);
-
-        XMatcher<Word> notO = x(w -> !w.getNer().equals("O")); 
-        Pattern<Word> namedEntities = Pattern.create(notO.oneOrMore());
-
-        tokens = namedEntities.replaceToOne(tokens, match -> {
-            List<Word> matched = match.getMatchedSubsequence();
-            String lemmas = matched.stream().map(Word::getLemma)
-                    .map(String::toLowerCase)
-                    .collect(Collectors.joining("_"));
-            return new Word(lemmas, lemmas, "NE", matched.get(0).getNer());
-        });
-
-        System.out.println(tokens);
+        List<String> grouped = NerGroup.groupNer(tokens);
+        System.out.println(grouped);
     }
 }

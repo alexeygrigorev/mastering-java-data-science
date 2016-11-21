@@ -34,7 +34,9 @@ public class Sentiment {
     public static void main(String[] args) throws IOException {
         List<SentimentRecord> data = readFromTagGz("data/aclImdb_v1.tar.gz");
 
-        List<SentimentRecord> train = data.stream().filter(SentimentRecord::isTrain).collect(Collectors.toList());
+        List<SentimentRecord> train = data.stream()
+                .filter(SentimentRecord::isTrain)
+                .collect(Collectors.toList());
 
         List<List<String>> trainTokens = tokenizeSentimentContent(train);
 
@@ -49,7 +51,7 @@ public class Sentiment {
         double[] y = labels(train);
 
         SparseLibLinear.mute();
-        Parameter param = new Parameter(SolverType.L1R_LR, 1, 0.00001);
+        Parameter param = new Parameter(SolverType.L1R_LR, 1, 0.001);
         Model model = SparseLibLinear.train(trainData, y, param);
 
         List<SentimentRecord> test = data.stream().filter(SentimentRecord::isTest).collect(Collectors.toList());

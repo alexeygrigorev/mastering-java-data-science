@@ -17,11 +17,11 @@ import com.google.common.base.Stopwatch;
 import com.google.common.primitives.Doubles;
 
 import chapter06.MatrixUtils;
-import chapter06.TruncatedSVD;
 import chapter06.embed.WordEmbeddings;
 import chapter06.project.PrepareData.QueryDocumentPair;
 import chapter06.text.CountVectorizer;
 import chapter06.text.TextUtils;
+import chapter06.text.TruncatedSVD;
 import joinery.DataFrame;
 import no.uib.cipr.matrix.DenseMatrix;
 import smile.data.SparseDataset;

@@ -1,4 +1,4 @@
-package chapter06.ownir.ml;
+package chapter06.ml;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -17,22 +17,20 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
-import chapter06.MatrixUtils;
 import chapter06.Projections;
 import chapter06.ScoredIndex;
 import chapter06.UrlRepository;
 import chapter06.text.CountVectorizer;
 import chapter06.text.TextUtils;
+import chapter06.text.TruncatedSVD;
 import smile.clustering.KMeans;
 import smile.data.SparseDataset;
-import smile.math.matrix.SingularValueDecomposition;
-import smile.math.matrix.SparseMatrix;
 
 public class BingKMeansTopics {
 
     public static void main(String[] args) throws IOException {
         UrlRepository urls = new UrlRepository();
-        List<List<String>> texts = extractText(urls);
+        List<List<String>> documents = extractText(urls);
         urls.close();
 
         CountVectorizer vectorizer = CountVectorizer.create()
@@ -42,24 +40,26 @@ public class BingKMeansTopics {
                 .withSublinearTfTransformation()
                 .build();
 
-        SparseDataset index = vectorizer.fitTransform(texts);
+        SparseDataset docVectors = vectorizer.fitTransform(documents);
 
-        SparseMatrix matrix = index.toSparseMatrix();
-        SingularValueDecomposition svd = SingularValueDecomposition.decompose(matrix, 150);
-        double[][] lsa = Projections.project(index, svd.getV());
-        lsa = MatrixUtils.l2RowNormalize(lsa);
+        int n = 150;
+        boolean normalize = true;
+        TruncatedSVD svd = new TruncatedSVD(n, normalize);
+        svd.fit(docVectors);
+        double[][] docsLsa = svd.transform(docVectors);
 
         int maxIter = 100;
         int runs = 3;
         int k = 100;
-        KMeans km = new KMeans(lsa, k, maxIter, runs);
+        KMeans km = new KMeans(docsLsa, k, maxIter, runs);
 
         System.out.println(Arrays.toString(km.getClusterSize()));
 
         double[][] centroids = km.centroids();
-        double[][] centroidsOriginal = Projections.project(centroids, t(svd.getV()));
+        double[][] termBasis = svd.getTermBasis();
+        double[][] centroidsOriginal = Projections.project(centroids, t(termBasis));
 
-        List<String> featureNames = vectorizer.featureNames();
+        List<String> featureNames = vectorizer.vocabulary();
 
         for (int centroidId = 0; centroidId < k; centroidId++) {
             System.out.print("cluster no " + centroidId + ": ");

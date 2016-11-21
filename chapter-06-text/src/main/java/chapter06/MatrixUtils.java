@@ -57,11 +57,11 @@ public class MatrixUtils {
     }
 
     private static double[] mult(double[][] matrix, double[] vector) {
-        DenseMatrix A = new DenseMatrix(matrix);
-        DenseVector x = new DenseVector(vector);
+        DenseMatrix X = new DenseMatrix(matrix);
+        DenseVector v = new DenseVector(vector);
 
-        DenseVector result = new DenseVector(A.numRows());
-        A.mult(x, result);
+        DenseVector result = new DenseVector(X.numRows());
+        X.mult(v, result);
         return result.getData();
     }
 

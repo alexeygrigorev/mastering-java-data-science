@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.HashMultiset;
@@ -19,13 +21,13 @@ import smile.data.SparseDataset;
 public class PmiCoOccurrenceMatrix {
 
     private final Map<String, Integer> tokenToIndex;
-    private final List<String> indexToToken;
+    private final List<String> vocabulary;
     private final SparseDataset pmiMatrix; 
 
-    private PmiCoOccurrenceMatrix(Map<String, Integer> tokenToIndex, List<String> indexToToken,
+    private PmiCoOccurrenceMatrix(Map<String, Integer> tokenToIndex, List<String> vocabulary,
             SparseDataset pmiMatrix) {
         this.tokenToIndex = tokenToIndex;
-        this.indexToToken = indexToToken;
+        this.vocabulary = vocabulary;
         this.pmiMatrix = pmiMatrix;
     }
 
@@ -33,8 +35,8 @@ public class PmiCoOccurrenceMatrix {
         return tokenToIndex;
     }
 
-    public List<String> getIndexToToken() {
-        return indexToToken;
+    public List<String> getVocabulary() {
+        return vocabulary;
     }
 
     public SparseDataset getPmiMatrix() {
@@ -42,20 +44,35 @@ public class PmiCoOccurrenceMatrix {
     }
 
     public int numberOfWords() {
-        return indexToToken.size();
+        return vocabulary.size();
     }
 
     public static PmiCoOccurrenceMatrix fit(List<Document> documents, int minDf, int window, double smoothing) {
         Multiset<String> docFrequency = documentFrequency(documents, minDf);
+        List<String> vocabulary = indexToToken(docFrequency);
+        Map<String, Integer> tokenToIndex = tokenToIndex(vocabulary);
 
-        List<String> indexToToken = indexToToken(docFrequency);
-        Map<String, Integer> tokenToIndex = tokenToIndex(indexToToken);
+        documents = removeInfrequent(documents, tokenToIndex.keySet());
 
         Multiset<String> counts = unigramCounts(documents);
         Table<String, String, Integer> coOccurrence = coOccurrenceCounts(documents, window);
-        SparseDataset pmiMatrix = buildPmiMatrix(tokenToIndex, counts, coOccurrence, smoothing);
+        SparseDataset pmiMatrix = buildPmiMatrix(vocabulary, tokenToIndex, counts, coOccurrence, smoothing);
 
-        return new PmiCoOccurrenceMatrix(tokenToIndex, indexToToken, pmiMatrix);
+        return new PmiCoOccurrenceMatrix(tokenToIndex, vocabulary, pmiMatrix);
+    }
+
+    private static List<Document> removeInfrequent(List<Document> documents, Set<String> vocabulary) {
+        for (Document doc : documents) {
+            for (Sentence sentence : doc.getSentences()) {
+                List<String> tokens = sentence.getTokens();
+                List<String> filtered = tokens.stream()
+                        .filter(t -> vocabulary.contains(t))
+                        .collect(Collectors.toList());
+                sentence.setTokens(filtered);
+            }
+        }
+
+        return documents;
     }
 
     private static Multiset<String> documentFrequency(List<Document> documents, int minDf) {
@@ -78,7 +95,6 @@ public class PmiCoOccurrenceMatrix {
 
     private static Multiset<String> unigramCounts(List<Document> documents) {
         Multiset<String> counts = HashMultiset.create();
-
         for (Document doc : documents) {
             for (Sentence sentence : doc.getSentences()) {
                 counts.addAll(sentence.getTokens());
@@ -126,19 +142,17 @@ public class PmiCoOccurrenceMatrix {
         }
     }
 
-    private static SparseDataset buildPmiMatrix(Map<String, Integer> tokenToIndex, Multiset<String> counts,
-            Table<String, String, Integer> coOccurrence, double smoothing) {
-        int ncol = tokenToIndex.size();
-        int nuniq = counts.entrySet().size();
+    private static SparseDataset buildPmiMatrix(List<String> vocabulary, Map<String, Integer> tokenToIndex,
+            Multiset<String> counts, Table<String, String, Integer> coOccurrence, double smoothing) {
+        int vocabularySize = vocabulary.size();
 
-        double totalNumTokens = counts.size() + nuniq * smoothing;
+        double totalNumTokens = counts.size() + vocabularySize * smoothing;
         double logTotalNumTokens = Math.log(totalNumTokens);
 
-        SparseDataset result = new SparseDataset(ncol);
+        SparseDataset result = new SparseDataset(vocabularySize);
 
-        for (Entry<String, Integer> mainTokenEntry : tokenToIndex.entrySet()) {
-            String token = mainTokenEntry.getKey();
-            int rowInx = mainTokenEntry.getValue();
+        for (int rowIdx = 0; rowIdx < vocabularySize; rowIdx++) {
+            String token = vocabulary.get(rowIdx);
 
             double mainTokenCount = counts.count(token) + smoothing;
             double logMainTokenCount = Math.log(mainTokenCount);
@@ -147,9 +161,6 @@ public class PmiCoOccurrenceMatrix {
 
             for (Entry<String, Integer> otherTokenEntry : tokenCooccurrence.entrySet()) {
                 String otherToken = otherTokenEntry.getKey();
-                if (!tokenToIndex.containsKey(otherToken)) {
-                    continue;
-                }
 
                 double otherTokenCount = counts.count(otherToken) + smoothing;
                 double logOtherTokenCount = Math.log(otherTokenCount);
@@ -159,7 +170,7 @@ public class PmiCoOccurrenceMatrix {
                 double pmi = logCoOccCount + logTotalNumTokens - logMainTokenCount - logOtherTokenCount;
                 if (pmi > 0) {
                     int colIdx = tokenToIndex.get(otherToken);
-                    result.set(rowInx, colIdx, pmi);
+                    result.set(rowIdx, colIdx, pmi);
                 }
             }
         }

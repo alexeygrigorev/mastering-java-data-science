@@ -24,14 +24,15 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Stopwatch;
 
 import chapter06.MatrixUtils;
 import chapter06.Projections;
 import chapter06.ScoredIndex;
 import chapter06.ScoredToken;
+import chapter06.text.TruncatedSVD;
 import smile.data.SparseDataset;
-import smile.math.matrix.SingularValueDecomposition;
 
 public class WordEmbeddings implements Serializable {
 
@@ -42,17 +43,17 @@ public class WordEmbeddings implements Serializable {
     }
 
     private final double[][] embeddings;
-    private final List<String> indexToToken;
+    private final List<String> vocabulary;
     private final Map<String, Integer> tokenToIndex;
 
-    public WordEmbeddings(double[][] embeddings, List<String> indexToToken, Map<String, Integer> tokenToIndex) {
+    public WordEmbeddings(double[][] embeddings, List<String> vocabulary, Map<String, Integer> tokenToIndex) {
         this.embeddings = embeddings;
-        this.indexToToken = indexToToken;
+        this.vocabulary = vocabulary;
         this.tokenToIndex = tokenToIndex;
     }
 
-    public WordEmbeddings(double[][] embeddings, List<String> indexToToken) {
-        this(embeddings, indexToToken, tokenToIndex(indexToToken));
+    public WordEmbeddings(double[][] embeddings, List<String> vocabulary) {
+        this(embeddings, vocabulary, tokenToIndex(vocabulary));
     }
 
     public List<ScoredToken> mostSimilar(String sample, int topK, double minSimilarity) {
@@ -67,7 +68,7 @@ public class WordEmbeddings implements Serializable {
         List<ScoredToken> result = new ArrayList<>(top.size() - 1);
 
         for (ScoredIndex si : top.subList(1, top.size())) {
-            String token = indexToToken.get(si.getIndex());
+            String token = vocabulary.get(si.getIndex());
             double score = si.getScore();
             result.add(new ScoredToken(token, score));
         }
@@ -99,7 +100,7 @@ public class WordEmbeddings implements Serializable {
         }
 
         Map<String, Integer> tokenToIndex = pmiCooc.getTokenToIndex();
-        List<String> indexToToken = pmiCooc.getIndexToToken();
+        List<String> indexToToken = pmiCooc.getVocabulary();
 
         return new WordEmbeddings(embedding, indexToToken, tokenToIndex);
     }
@@ -111,10 +112,8 @@ public class WordEmbeddings implements Serializable {
     }
 
     private static double[][] svd(SparseDataset matrix, int outputDimension) {
-        SingularValueDecomposition svd = SingularValueDecomposition.decompose(matrix.toSparseMatrix(), outputDimension);
-        double[][] basis = svd.getV();
-        double[][] projection = Projections.project(matrix, basis);
-        return MatrixUtils.l2RowNormalize(projection);
+        TruncatedSVD svd = new TruncatedSVD(outputDimension, true);
+        return svd.fitTransform(matrix);
     }
 
     private static List<ScoredIndex> safeTop(List<ScoredIndex> scored, int topK) {
@@ -174,17 +173,17 @@ public class WordEmbeddings implements Serializable {
                 .map(line -> parseGloveTextLine(line))
                 .collect(Collectors.toList());
 
-        List<String> indexToToken = new ArrayList<>(pairs.size());
+        List<String> vocabulary = new ArrayList<>(pairs.size());
         double[][] embeddings = new double[pairs.size()][];
 
         for (int i = 0; i < pairs.size(); i++) {
             Pair<String, double[]> pair = pairs.get(i);
-            indexToToken.add(pair.getLeft());
+            vocabulary.add(pair.getLeft());
             embeddings[i] = pair.getRight();
         }
 
         embeddings = MatrixUtils.l2RowNormalize(embeddings);
-        WordEmbeddings result = new WordEmbeddings(embeddings, indexToToken);
+        WordEmbeddings result = new WordEmbeddings(embeddings, vocabulary);
         LOGGER.debug("loading GloVe embeddings from {} took {}", file, stopwatch.stop());
         return result;
     }

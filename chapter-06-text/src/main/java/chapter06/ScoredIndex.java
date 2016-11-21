@@ -42,7 +42,6 @@ public class ScoredIndex implements Comparable<ScoredIndex> {
         }
 
         Collections.sort(scored);
-
         return scored;
     }
 

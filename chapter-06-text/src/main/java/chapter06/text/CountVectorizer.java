@@ -1,12 +1,10 @@
 package chapter06.text;
 
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Comparator;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
@@ -60,9 +58,9 @@ public class CountVectorizer implements Serializable {
             return new CountVectorizer(minDf, applyIdf, sublinearTf, normalize);
         }
 
-        public CountVectorizer fit(List<List<String>> tokens) {
+        public CountVectorizer fit(List<List<String>> documents) {
             CountVectorizer vectorizer = build();
-            vectorizer.fit(tokens);
+            vectorizer.fit(documents);
             return vectorizer;
         }
 
@@ -86,6 +84,7 @@ public class CountVectorizer implements Serializable {
     private final boolean normalize;
 
     private Map<String, Integer> tokenToIndex;
+    private List<String> vocabulary;
     private double[] idfs;
 
     public CountVectorizer(int minDf, boolean applyIdf, boolean sublinearTf, boolean normalize) {
@@ -95,33 +94,33 @@ public class CountVectorizer implements Serializable {
         this.normalize = normalize;
     }
 
-    public SparseDataset fitTransform(List<List<String>> tokens) {
-        return fit(tokens).transfrom(tokens);
+    public SparseDataset fitTransform(List<List<String>> documents) {
+        return fit(documents).transfrom(documents);
     }
 
-    public CountVectorizer fit(List<List<String>> tokens) {
+    public CountVectorizer fit(List<List<String>> documents) {
         Multiset<String> df = HashMultiset.create();
-        tokens.forEach(list -> df.addAll(Sets.newHashSet(list)));
+        documents.forEach(list -> df.addAll(Sets.newHashSet(list)));
         Multiset<String> docFrequency = Multisets.filter(df, p -> df.count(p) >= minDf);
 
-        List<String> sorted = Ordering.natural().sortedCopy(docFrequency.elementSet());
-        tokenToIndex = new HashMap<>(sorted.size());
-        for (int i = 0; i < sorted.size(); i++) {
-            tokenToIndex.put(sorted.get(i), i);
+        vocabulary = Ordering.natural().sortedCopy(docFrequency.elementSet());
+        tokenToIndex = new HashMap<>(vocabulary.size());
+        for (int i = 0; i < vocabulary.size(); i++) {
+            tokenToIndex.put(vocabulary.get(i), i);
         }
 
         if (applyIdf) {
-            idfs = calculateIdf(docFrequency, tokenToIndex);
+            idfs = calculateIdf(docFrequency, tokenToIndex, documents.size());
         }
 
         return this;
     }
 
-    private static double[] calculateIdf(Multiset<String> domainFrequency, Map<String, Integer> tokenToIndex) {
-        int numDocuments = tokenToIndex.size();
+    private static double[] calculateIdf(Multiset<String> domainFrequency, Map<String, Integer> tokenToIndex,
+            int numDocuments) {
         double numDocumentsLog = Math.log(numDocuments + 1);
 
-        double[] result = new double[numDocuments];
+        double[] result = new double[tokenToIndex.size()];
 
         for (Entry<String> e : domainFrequency.entrySet()) {
             String token = e.getElement();
@@ -132,8 +131,8 @@ public class CountVectorizer implements Serializable {
         return result;
     }
 
-    public SparseDataset transfrom(List<List<String>> tokens) {
-        int nrow = tokens.size();
+    public SparseDataset transfrom(List<List<String>> documents) {
+        int nrow = documents.size();
         int ncol = tokenToIndex.size();
 
         SparseDataset tfidf = new SparseDataset(ncol);
@@ -141,7 +140,7 @@ public class CountVectorizer implements Serializable {
         for (int rowNo = 0; rowNo < nrow; rowNo++) {
             tfidf.set(rowNo, 0, 0.0);
 
-            Multiset<String> row = HashMultiset.create(tokens.get(rowNo));
+            Multiset<String> row = HashMultiset.create(documents.get(rowNo));
 
             for (Entry<String> e : row.entrySet()) {
                 String token = e.getElement();
@@ -173,16 +172,12 @@ public class CountVectorizer implements Serializable {
     }
 
     public SparseArray transfromVector(List<String> tokens) {
-        SparseDataset dataset = transfrom(Arrays.asList(tokens));
+        SparseDataset dataset = transfrom(Collections.singletonList(tokens));
         return dataset.get(0).x;
     }
 
-    public List<String> featureNames() {
-        Comparator<Map.Entry<String, Integer>> byValue = Map.Entry.comparingByValue();
-        return tokenToIndex.entrySet().stream()
-                .sorted(byValue)
-                .map(e -> e.getKey())
-                .collect(Collectors.toList());
+    public List<String> vocabulary() {
+        return vocabulary;
     }
 
 }

@@ -34,7 +34,7 @@ public class IRSimpleText {
 
         SparseDataset docVectors = vectorizer.fitTransform(documents);
 
-        List<String> featureNames = vectorizer.featureNames();
+        List<String> featureNames = vectorizer.vocabulary();
         docVectors.forEach(e -> {
             e.x.forEach(i -> System.out.printf("(%s, %.3f) ", featureNames.get(i.i), i.x));
             System.out.println();

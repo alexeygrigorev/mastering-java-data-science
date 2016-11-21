@@ -95,8 +95,8 @@ public class CoreNlpAndLucene {
             return Optional.empty();
         }
 
-        String titleTokens = prepare(tokenizer, jsoupDoc.title());
-        String bodyTokens = prepare(tokenizer, body.text());
+        String titleTokens = tokenize(tokenizer, jsoupDoc.title());
+        String bodyTokens = tokenize(tokenizer, body.text());
 
         Document doc = new Document();
         doc.add(new Field("url", url, URL_FIELD));
@@ -108,7 +108,7 @@ public class CoreNlpAndLucene {
 
     
 
-    private static String prepare(StanfordNlpTokenizer tokenizer, String text) {
+    private static String tokenize(StanfordNlpTokenizer tokenizer, String text) {
         List<Word> tokens = tokenizer.tokenize(text);
         return tokens.stream()
                     .map(Word::getLemma)
