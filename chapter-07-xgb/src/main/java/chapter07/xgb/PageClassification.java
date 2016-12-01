@@ -9,7 +9,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -18,14 +17,19 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import joinery.DataFrame;
+import ml.dmlc.xgboost4j.java.Booster;
+import ml.dmlc.xgboost4j.java.DMatrix;
+import ml.dmlc.xgboost4j.java.IEvaluation;
+import ml.dmlc.xgboost4j.java.IObjective;
+import ml.dmlc.xgboost4j.java.XGBoost;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SerializationUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-
-import com.google.common.collect.ImmutableMap;
 
 import chapter07.BeanToJoinery;
 import chapter07.Metrics;
@@ -34,54 +38,55 @@ import chapter07.TextUtils;
 import chapter07.UrlRepository;
 import chapter07.cv.Dataset;
 import chapter07.cv.Split;
-import joinery.DataFrame;
-import ml.dmlc.xgboost4j.LabeledPoint;
-import ml.dmlc.xgboost4j.java.Booster;
-import ml.dmlc.xgboost4j.java.DMatrix;
-import ml.dmlc.xgboost4j.java.IEvaluation;
-import ml.dmlc.xgboost4j.java.IObjective;
-import ml.dmlc.xgboost4j.java.XGBoost;
-import ml.dmlc.xgboost4j.java.XGBoostError;
+
+import com.google.common.collect.ImmutableMap;
 
 public class PageClassification {
 
     public static void main(String[] args) throws Exception {
         Dataset dataset = readData();
+        Split split = dataset.trainTestSplit(0.2);
 
+        Dataset trainFull = split.getTrain();
+        Dataset test = split.getTest();
+
+        Split trainSplit = trainFull.trainTestSplit(0.2);
+        Dataset train = trainSplit.getTrain();
+        Dataset val = trainSplit.getTest();
+        
         Map<String, Object> params = xgbParams();
         int nrounds = 20;
 
-        Split split = dataset.trainTestSplit(0.2);
-
-        Dataset train = split.getTrain();
-
-        Split trainSplit = train.trainTestSplit(0.2);
-        DMatrix dtrain = wrapData(trainSplit.getTrain());
-        DMatrix dval = wrapData(trainSplit.getTest());
+        DMatrix dtrain = XgbUtils.wrapData(train);
+        DMatrix dval = XgbUtils.wrapData(val);
         Map<String, DMatrix> watches = ImmutableMap.of("train", dtrain, "val", dval);
 
         IObjective obj = null;
         IEvaluation eval = null;
+        Booster model = XGBoost.train(dtrain, params, nrounds, watches, obj, eval);
 
-        Booster model;
-        model = XGBoost.train(dtrain, params, nrounds, watches, obj, eval);
+        boolean outputMargin = true;
+        int treeLimit = 10;
+        float[][] res = model.predict(dval, outputMargin, treeLimit);
+        double[] predict = XgbUtils.unwrapToDouble(res);
+        double auc = Metrics.auc(val.getY(), predict);
+        System.out.printf("auc: %.4f%n", auc);
 
-        List<Split> kfold = train.kfold(3);
         System.out.println("usual CV");
+        List<Split> kfold = trainFull.kfold(3);
 
         double aucs = 0;
         for (Split cvSplit : kfold) {
-            dtrain = wrapData(cvSplit.getTrain());
+            dtrain = XgbUtils.wrapData(cvSplit.getTrain());
             Dataset validation = cvSplit.getTest();
-            dval = wrapData(validation);
+            dval = XgbUtils.wrapData(validation);
 
             watches = ImmutableMap.of("train", dtrain, "val", dval);
             model = XGBoost.train(dtrain, params, nrounds, watches, obj, eval);
 
-            float[][] res = model.predict(dval);
-            double[] predict = unwrapToDouble(res);
+            predict = XgbUtils.preduct(model, dval);
 
-            double auc = Metrics.auc(validation.getY(), predict);
+            auc = Metrics.auc(validation.getY(), predict);
 
             System.out.printf("fold auc: %.4f%n", auc);
             aucs = aucs + auc;
@@ -92,34 +97,28 @@ public class PageClassification {
 
         System.out.println("xgb CV");
 
-        DMatrix dtrainfull = wrapData(train);
+        DMatrix dtrainfull = XgbUtils.wrapData(trainFull);
         int nfold = 3;
         String[] metric = {"auc"};
-        String[] crossValidation = XGBoost.crossValidation(dtrainfull, params, nrounds, nfold, metric, null, null);
+        String[] crossValidation = XGBoost.crossValidation(dtrainfull, params, nrounds, nfold, metric, obj, eval);
 
         Arrays.stream(crossValidation).forEach(System.out::println);
 
         model = XGBoost.train(dtrain, params, nrounds, watches, obj, eval);
 
-        watches = Collections.singletonMap("dtrainfull", dtrainfull);
-
         // full train
+        watches = Collections.singletonMap("dtrainfull", dtrainfull);
         nrounds = 12;
         model = XGBoost.train(dtrainfull, params, nrounds, watches, obj, eval);
 
-        Dataset test = split.getTest();
-        DMatrix dtest = wrapData(test);
-
-        float[][] floatResults = model.predict(dtest);
-        double[] predict = unwrapToDouble(floatResults);
-
-        double auc = Metrics.auc(test.getY(), predict);
+        predict = XgbUtils.preduct(model, test);
+        auc = Metrics.auc(test.getY(), predict);
 
         System.out.printf("final auc: %.4f%n", auc);
 
     }
 
-    private static Map<String, Object> xgbParams() {
+    public static Map<String, Object> xgbParams() {
         Map<String, Object> params = new HashMap<>();
         params.put("eta", 0.3);
         params.put("gamma", 0);
@@ -139,40 +138,6 @@ public class PageClassification {
         params.put("seed", 42);
         params.put("silent", 1);
         return params;
-    }
-
-    private static double[] unwrapToDouble(float[][] floatResults) {
-        int n = floatResults.length;
-        double[] result = new double[n];
-        for (int i = 0; i < n; i++) {
-            result[i] = floatResults[i][0];
-        }
-        return result;
-    }
-
-    private static DMatrix wrapData(Dataset data) throws XGBoostError {
-        int nrow = data.length();
-        double[][] X = data.getX();
-        double[] y = data.getY();
-        List<LabeledPoint> points = new ArrayList<>();
-
-        for (int i = 0; i < nrow; i++) {
-            float label = (float) y[i];
-            float[] floatRow = asFloat(X[i]);
-            LabeledPoint point = LabeledPoint.fromDenseVector(label, floatRow);
-            points.add(point);
-        }
-
-        String cacheInfo = "";
-        return new DMatrix(points.iterator(), cacheInfo);
-    }
-
-    private static float[] asFloat(double[] ds) {
-        float[] result = new float[ds.length];
-        for (int i = 0; i < ds.length; i++) {
-            result[i] = (float) ds[i];
-        }
-        return result;
     }
 
     private static Dataset readData() throws IOException {
