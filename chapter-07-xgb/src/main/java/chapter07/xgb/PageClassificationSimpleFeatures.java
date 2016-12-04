@@ -12,10 +12,10 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
@@ -35,20 +35,19 @@ import chapter07.UrlRepository;
 import chapter07.cv.Dataset;
 import chapter07.cv.Split;
 import joinery.DataFrame;
-import ml.dmlc.xgboost4j.LabeledPoint;
 import ml.dmlc.xgboost4j.java.Booster;
 import ml.dmlc.xgboost4j.java.DMatrix;
 import ml.dmlc.xgboost4j.java.IEvaluation;
 import ml.dmlc.xgboost4j.java.IObjective;
 import ml.dmlc.xgboost4j.java.XGBoost;
-import ml.dmlc.xgboost4j.java.XGBoostError;
 
-public class PageClassification {
+public class PageClassificationSimpleFeatures {
 
     public static void main(String[] args) throws Exception {
         Dataset dataset = readData();
 
-        Map<String, Object> params = xgbParams();
+        Map<String, Object> params = XgbUtils.defaultParams();
+        params.put("eval_metric", "auc");
         int nrounds = 20;
 
         Split split = dataset.trainTestSplit(0.2);
@@ -56,8 +55,8 @@ public class PageClassification {
         Dataset train = split.getTrain();
 
         Split trainSplit = train.trainTestSplit(0.2);
-        DMatrix dtrain = wrapData(trainSplit.getTrain());
-        DMatrix dval = wrapData(trainSplit.getTest());
+        DMatrix dtrain = XgbUtils.wrapData(trainSplit.getTrain());
+        DMatrix dval = XgbUtils.wrapData(trainSplit.getTest());
         Map<String, DMatrix> watches = ImmutableMap.of("train", dtrain, "val", dval);
 
         IObjective obj = null;
@@ -71,15 +70,14 @@ public class PageClassification {
 
         double aucs = 0;
         for (Split cvSplit : kfold) {
-            dtrain = wrapData(cvSplit.getTrain());
+            dtrain = XgbUtils.wrapData(cvSplit.getTrain());
             Dataset validation = cvSplit.getTest();
-            dval = wrapData(validation);
+            dval = XgbUtils.wrapData(validation);
 
             watches = ImmutableMap.of("train", dtrain, "val", dval);
             model = XGBoost.train(dtrain, params, nrounds, watches, obj, eval);
 
-            float[][] res = model.predict(dval);
-            double[] predict = unwrapToDouble(res);
+            double[] predict = XgbUtils.precict(model, dval);
 
             double auc = Metrics.auc(validation.getY(), predict);
 
@@ -92,7 +90,7 @@ public class PageClassification {
 
         System.out.println("xgb CV");
 
-        DMatrix dtrainfull = wrapData(train);
+        DMatrix dtrainfull = XgbUtils.wrapData(train);
         int nfold = 3;
         String[] metric = {"auc"};
         String[] crossValidation = XGBoost.crossValidation(dtrainfull, params, nrounds, nfold, metric, null, null);
@@ -108,75 +106,17 @@ public class PageClassification {
         model = XGBoost.train(dtrainfull, params, nrounds, watches, obj, eval);
 
         Dataset test = split.getTest();
-        DMatrix dtest = wrapData(test);
-
-        float[][] floatResults = model.predict(dtest);
-        double[] predict = unwrapToDouble(floatResults);
-
+        double[] predict = XgbUtils.predict(model, test);
         double auc = Metrics.auc(test.getY(), predict);
 
         System.out.printf("final auc: %.4f%n", auc);
 
-    }
-
-    private static Map<String, Object> xgbParams() {
-        Map<String, Object> params = new HashMap<>();
-        params.put("eta", 0.3);
-        params.put("gamma", 0);
-        params.put("max_depth", 6);
-        params.put("min_child_weight", 1);
-        params.put("max_delta_step", 0);
-        params.put("subsample", 1);
-        params.put("colsample_bytree", 1);
-        params.put("colsample_bylevel", 1);
-        params.put("lambda", 1);
-        params.put("alpha", 0);
-        params.put("tree_method", "approx");
-        params.put("objective", "binary:logistic");
-        // params.put("eval_metric", "logloss");
-        params.put("eval_metric", "auc");
-        params.put("nthread", 8);
-        params.put("seed", 42);
-        params.put("silent", 1);
-        return params;
-    }
-
-    private static double[] unwrapToDouble(float[][] floatResults) {
-        int n = floatResults.length;
-        double[] result = new double[n];
-        for (int i = 0; i < n; i++) {
-            result[i] = floatResults[i][0];
-        }
-        return result;
-    }
-
-    private static DMatrix wrapData(Dataset data) throws XGBoostError {
-        int nrow = data.length();
-        double[][] X = data.getX();
-        double[] y = data.getY();
-        List<LabeledPoint> points = new ArrayList<>();
-
-        for (int i = 0; i < nrow; i++) {
-            float label = (float) y[i];
-            float[] floatRow = asFloat(X[i]);
-            LabeledPoint point = LabeledPoint.fromDenseVector(label, floatRow);
-            points.add(point);
-        }
-
-        String cacheInfo = "";
-        return new DMatrix(points.iterator(), cacheInfo);
-    }
-
-    private static float[] asFloat(double[] ds) {
-        float[] result = new float[ds.length];
-        for (int i = 0; i < ds.length; i++) {
-            result[i] = (float) ds[i];
-        }
-        return result;
+        Map<String, Integer> importance = XgbUtils.featureImportance(model, dataset.getFeatureNames());
+        importance.entrySet().forEach(System.out::println);
     }
 
     private static Dataset readData() throws IOException {
-        File cache = new File("data-cache.bin");
+        File cache = new File("data-cache-text.bin");
         if (cache.exists()) {
             try (InputStream is = Files.newInputStream(cache.toPath())) {
                 try (BufferedInputStream bis = new BufferedInputStream(is)) {
@@ -202,13 +142,23 @@ public class PageClassification {
         dataframe = dataframe.drop("page", "url", "position", "body", "query", "title", "url");
         double[][] X = dataframe.toModelMatrix(0.0);
 
-        Dataset dataset = new Dataset(X, target);
+        List<String> features = columnNames(dataframe);
+        Dataset dataset = new Dataset(X, target, features);
 
         try (OutputStream os = Files.newOutputStream(cache.toPath())) {
             SerializationUtils.serialize(dataset, os);
         }
 
         return dataset;
+    }
+
+    private static List<String> columnNames(DataFrame<Object> dataframe) {
+        Set<Object> columns = dataframe.columns();
+        List<String> results = new ArrayList<>(columns.size());
+        for (Object o : columns) {
+            results.add(o.toString());
+        }
+        return results;
     }
 
     private static Optional<RankedPage> parse(UrlRepository urls, String line) {

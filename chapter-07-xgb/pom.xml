@@ -20,6 +20,11 @@
       <id>bintray</id>
       <url>http://jcenter.bintray.com</url>
     </repository>
+        <repository>
+          <id>sonatype-shapshot</id>
+          <name>Sonatype Snapshot Repository</name>
+          <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+        </repository>
   </repositories>
 
   <dependencies>
@@ -63,9 +68,9 @@
     </dependency>
 
     <dependency>
-      <groupId>ml.dmlc</groupId>
+      <groupId>ml.dmlc.xgboost</groupId>
       <artifactId>xgboost4j</artifactId>
-      <version>0.7</version>
+      <version>0.7-SNAPSHOT</version>
     </dependency>
 
     <!-- Lucene -->

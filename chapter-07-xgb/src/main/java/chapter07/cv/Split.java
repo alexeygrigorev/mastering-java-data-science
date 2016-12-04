@@ -36,8 +36,8 @@ public class Split {
             testYres[i] = y[idx];
         }
 
-        Dataset train = new Dataset(trainXres, trainYres);
-        Dataset test = new Dataset(testXres, testYres);
+        Dataset train = new Dataset(trainXres, trainYres, dataset.getFeatureNames());
+        Dataset test = new Dataset(testXres, testYres, dataset.getFeatureNames());
         return new Split(train, test);
     }
 

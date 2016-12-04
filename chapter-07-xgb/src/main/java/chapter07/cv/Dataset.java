@@ -10,10 +10,12 @@ public class Dataset implements Serializable {
 
     private final double[][] X;
     private final double[] y;
+    private final List<String> featureNames;
 
-    public Dataset(double[][] X, double[] y) {
+    public Dataset(double[][] X, double[] y, List<String> featureNames) {
         this.X = X;
         this.y = y;
+        this.featureNames = featureNames;
     }
 
     public double[][] getX() {
@@ -22,6 +24,10 @@ public class Dataset implements Serializable {
 
     public double[] getY() {
         return y;
+    }
+
+    public List<String> getFeatureNames() {
+        return featureNames;
     }
 
     public int[] getYAsInt() {
