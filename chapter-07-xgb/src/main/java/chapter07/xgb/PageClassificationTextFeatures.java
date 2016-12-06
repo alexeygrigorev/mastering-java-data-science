@@ -1,10 +1,13 @@
 package chapter07.xgb;
 
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -13,11 +16,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.SerializationUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableMap;
 
 import chapter07.BeanToJoinery;
@@ -41,7 +46,12 @@ public class PageClassificationTextFeatures {
 
         Map<String, Object> params = XgbUtils.defaultParams();
         params.put("eval_metric", "auc");
-        int nrounds = 20;
+        params.put("colsample_bytree", 0.5);
+        params.put("max_depth", 3);
+        params.put("min_child_weight", 30);
+        params.put("subsample", 0.7);
+        params.put("eta", 0.01);
+        int nrounds = 50;
 
         Split split = dataset.trainTestSplit(0.2);
 
@@ -58,45 +68,15 @@ public class PageClassificationTextFeatures {
         Booster model;
         model = XGBoost.train(dtrain, params, nrounds, watches, obj, eval);
 
-        List<Split> kfold = train.kfold(3);
-        System.out.println("usual CV");
-
-        double aucs = 0;
-        for (Split cvSplit : kfold) {
-            dtrain = XgbUtils.wrapData(cvSplit.getTrain());
-            Dataset validation = cvSplit.getTest();
-            dval = XgbUtils.wrapData(validation);
-
-            watches = ImmutableMap.of("train", dtrain, "val", dval);
-            model = XGBoost.train(dtrain, params, nrounds, watches, obj, eval);
-
-            double[] predict = XgbUtils.precict(model, dval);
-
-            double auc = Metrics.auc(validation.getY(), predict);
-
-            System.out.printf("fold auc: %.4f%n", auc);
-            aucs = aucs + auc;
-        }
-
-        aucs = aucs / 3;
-        System.out.printf("cv auc: %.4f%n", aucs);
-
-        System.out.println("xgb CV");
-
         DMatrix dtrainfull = XgbUtils.wrapData(train);
-        int nfold = 3;
-        String[] metric = {"auc"};
-        String[] crossValidation = XGBoost.crossValidation(dtrainfull, params, nrounds, nfold, metric, null, null);
-
-        Arrays.stream(crossValidation).forEach(System.out::println);
-
-        model = XGBoost.train(dtrain, params, nrounds, watches, obj, eval);
-
         watches = Collections.singletonMap("dtrainfull", dtrainfull);
 
         // full train
-        nrounds = 12;
+        nrounds = 18;
         model = XGBoost.train(dtrainfull, params, nrounds, watches, obj, eval);
+
+        Map<String, Integer> importance = XgbUtils.featureImportance(model, dataset.getFeatureNames());
+        importance.entrySet().forEach(System.out::println);
 
         Dataset test = split.getTest();
         double[] predict = XgbUtils.predict(model, test);
@@ -107,14 +87,14 @@ public class PageClassificationTextFeatures {
     }
 
     private static Dataset readData() throws Exception {
-//        File cache = new File("data-cache.bin");
-//        if (cache.exists()) {
-//            try (InputStream is = Files.newInputStream(cache.toPath())) {
-//                try (BufferedInputStream bis = new BufferedInputStream(is)) {
-//                    return SerializationUtils.deserialize(bis);
-//                }
-//            }
-//        }
+        File cache = new File("data-cache-text.bin");
+        if (cache.exists()) {
+            try (InputStream is = Files.newInputStream(cache.toPath())) {
+                try (BufferedInputStream bis = new BufferedInputStream(is)) {
+                    return SerializationUtils.deserialize(bis);
+                }
+            }
+        }
 
         UrlRepository urls = new UrlRepository();
 
@@ -144,26 +124,17 @@ public class PageClassificationTextFeatures {
             dataframe.add(columnName, values);
         }
 
-        List<String> featureNames = columnNames(dataframe);
-
+        List<String> featureNames = JoineryUtils.columnNames(dataframe);
+        System.out.println(featureNames);
         double[][] X = dataframe.toModelMatrix(0.0);
 
         Dataset dataset = new Dataset(X, target, featureNames);
 
-//        try (OutputStream os = Files.newOutputStream(cache.toPath())) {
-//            SerializationUtils.serialize(dataset, os);
-//        }
+        try (OutputStream os = Files.newOutputStream(cache.toPath())) {
+            SerializationUtils.serialize(dataset, os);
+        }
 
         return dataset;
-    }
-
-    private static List<String> columnNames(DataFrame<Object> dataframe) {
-        Set<Object> columns = dataframe.columns();
-        List<String> results = new ArrayList<>(columns.size());
-        for (Object o : columns) {
-            results.add(o.toString());
-        }
-        return results;
     }
 
 
@@ -201,9 +172,17 @@ public class PageClassificationTextFeatures {
         int numberOfLinks = document.body().select("a").size();
         page.setNumberOfLinks(numberOfLinks);
 
-        Elements headers = body.select("h1,h2,h3,h4,h5,h6");
-        int numberOfHeaders = headers.size();
+        Elements headerElements = body.select("h1,h2,h3,h4,h5,h6");
+        int numberOfHeaders = headerElements.size();
         page.setNumberOfHeaders(numberOfHeaders);
+
+        ArrayListMultimap<String, String> headers = ArrayListMultimap.create();
+        for (Element htag : headerElements) {
+            String tagName = htag.nodeName().toLowerCase();
+            headers.put(tagName, htag.text());
+        }
+
+        page.setHeaders(headers);
 
         return Optional.of(page);
     }

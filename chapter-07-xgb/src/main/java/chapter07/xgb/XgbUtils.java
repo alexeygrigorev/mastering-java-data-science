@@ -14,6 +14,10 @@ import ml.dmlc.xgboost4j.LabeledPoint;
 import ml.dmlc.xgboost4j.java.Booster;
 import ml.dmlc.xgboost4j.java.DMatrix;
 import ml.dmlc.xgboost4j.java.XGBoostError;
+import smile.data.Datum;
+import smile.data.SparseDataset;
+import smile.math.SparseArray;
+import smile.math.SparseArray.Entry;
 
 public class XgbUtils {
 
@@ -42,6 +46,36 @@ public class XgbUtils {
         String cacheInfo = "";
         return new DMatrix(points.iterator(), cacheInfo);
     }
+
+    public static DMatrix wrapData(SparseDataset data) throws XGBoostError {
+        int nrow = data.size();
+        List<LabeledPoint> points = new ArrayList<>();
+
+        for (int i = 0; i < nrow; i++) {
+            Datum<SparseArray> datum = data.get(i);
+            float label = (float) datum.y;
+            SparseArray array = datum.x;
+
+            int size = array.size();
+
+            int[] indices = new int[size];
+            float[] values = new float[size];
+
+            int idx = 0;
+            for (Entry e : array) {
+                indices[idx] = e.i;
+                values[idx] = (float) e.x;
+                idx++;
+            }
+
+            LabeledPoint point = LabeledPoint.fromSparseVector(label, indices, values);
+            points.add(point);
+        }
+
+        String cacheInfo = "";
+        return new DMatrix(points.iterator(), cacheInfo);
+    }
+
 
     public static float[] asFloat(double[] ds) {
         float[] result = new float[ds.length];

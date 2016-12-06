@@ -9,13 +9,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
@@ -142,7 +140,7 @@ public class PageClassificationSimpleFeatures {
         dataframe = dataframe.drop("page", "url", "position", "body", "query", "title", "url");
         double[][] X = dataframe.toModelMatrix(0.0);
 
-        List<String> features = columnNames(dataframe);
+        List<String> features = JoineryUtils.columnNames(dataframe);
         Dataset dataset = new Dataset(X, target, features);
 
         try (OutputStream os = Files.newOutputStream(cache.toPath())) {
@@ -150,15 +148,6 @@ public class PageClassificationSimpleFeatures {
         }
 
         return dataset;
-    }
-
-    private static List<String> columnNames(DataFrame<Object> dataframe) {
-        Set<Object> columns = dataframe.columns();
-        List<String> results = new ArrayList<>(columns.size());
-        for (Object o : columns) {
-            results.add(o.toString());
-        }
-        return results;
     }
 
     private static Optional<RankedPage> parse(UrlRepository urls, String line) {
