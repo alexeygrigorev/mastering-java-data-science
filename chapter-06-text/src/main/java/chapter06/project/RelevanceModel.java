@@ -13,20 +13,18 @@ import java.util.Set;
 import org.apache.commons.lang3.SerializationUtils;
 
 import chapter06.cv.Dataset;
-import chapter06.ml.LibLinear;
 import chapter06.ml.Metrics;
 import joinery.DataFrame;
 import smile.classification.DecisionTree.SplitRule;
 import smile.classification.RandomForest;
 import smile.classification.SoftClassifier;
 
-public class FirstPageOrNot {
+public class RelevanceModel {
 
     public static void main(String[] args) throws IOException {
         DataFrame<Number> trainFeatures = load("data/project-train-features.bin");
         DataFrame<Number> testFeatures = load("data/project-test-features.bin");
 
-        LibLinear.mute();
         Dataset trainDataset = toDataset(trainFeatures);
         Dataset testDataset = toDataset(testFeatures);
 
