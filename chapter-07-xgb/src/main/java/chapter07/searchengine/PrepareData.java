@@ -75,11 +75,35 @@ public class PrepareData {
 
         DataFrame<Double> trainFeatures = featureExtractor.transform(train);
         trainFeatures.add("relevance", Doubles.asList(trainY));
+        trainFeatures.add("queryId", extractQueryId(train));
+        trainFeatures = trainFeatures.sortBy("queryId");
         save("project/project-train-features.bin", trainFeatures);
 
         DataFrame<Double> testFeatures = featureExtractor.transform(test);
         testFeatures.add("relevance", Doubles.asList(testY));
+        testFeatures.add("queryId", extractQueryId(test));
+        testFeatures = testFeatures.sortBy("queryId");
         save("project/project-test-features.bin", testFeatures);
+    }
+
+    private static List<Double> extractQueryId(List<QueryDocumentPair> input) {
+        int cnt = 0; 
+        Map<String, Integer> idMapping = new HashMap<>();
+
+        List<Double> ids = new ArrayList<>(input.size());
+        for (QueryDocumentPair qdp : input) {
+            String query = qdp.getQuery();
+
+            if (!idMapping.containsKey(query)) {
+                idMapping.put(query, cnt);
+                cnt++;
+            }
+
+            Integer id = idMapping.get(query);
+            ids.add(id.doubleValue());
+        }
+
+        return ids;
     }
 
     private static ArrayListMultimap<String, String> readRankingData() throws IOException {
