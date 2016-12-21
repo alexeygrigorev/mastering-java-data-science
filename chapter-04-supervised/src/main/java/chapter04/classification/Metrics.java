@@ -34,7 +34,7 @@ public class Metrics {
             double pi = predicted[i];
 
             if (yi == 0.0) {
-                total = total + Math.log(Math.max(1 - pi, 1 - eps));
+                total = total + Math.log(Math.min(1 - pi, 1 - eps));
             } else if (yi == 1.0) {
                 total = total + Math.log(Math.max(pi, eps));
             } else {
