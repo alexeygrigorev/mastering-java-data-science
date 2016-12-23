@@ -73,8 +73,18 @@
       <version>0.7.1</version>
     </dependency>
     <dependency>
+      <groupId>org.deeplearning4j</groupId>
+      <artifactId>deeplearning4j-ui_2.10</artifactId>
+      <version>0.7.1</version>
+    </dependency>
+    <dependency>
       <groupId>org.nd4j</groupId>
       <artifactId>nd4j-native-platform</artifactId> 
+      <version>0.7.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.nd4j</groupId>
+      <artifactId>nd4j-cuda-7.5</artifactId> 
       <version>0.7.1</version>
     </dependency>
 
@@ -90,26 +100,9 @@
     </dependency>
 
     <dependency>
-      <groupId>com.github.haifengl</groupId>
-      <artifactId>smile-core</artifactId>
-      <version>1.2.1</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.googlecode.matrix-toolkits-java</groupId>
-      <artifactId>mtj</artifactId>
-      <version>1.0.2</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.jsoup</groupId>
-      <artifactId>jsoup</artifactId>
-      <version>1.9.2</version>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.jr</groupId>
-      <artifactId>jackson-jr-all</artifactId>
-      <version>2.8.1</version>
+      <groupId>org.imgscalr</groupId>
+      <artifactId>imgscalr-lib</artifactId>
+      <version>4.2</version>
     </dependency>
 
     <!-- Tests -->
