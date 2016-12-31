@@ -42,7 +42,8 @@ public class Augmentations {
 
             for (Rotation rotation : rotations) {
                 BufferedImage rotated = Scalr.rotate(src, rotation);
-                File outputFile = new File(outputDir, f.getName() + "_" + rotation.name() + ".jpg");
+                String rotatedFile = f.getName() + "_" + rotation.name() + ".jpg";
+                File outputFile = new File(outputDir, rotatedFile);
                 ImageIO.write(rotated, "jpg", outputFile);
 
                 int width = src.getWidth();
@@ -64,8 +65,9 @@ public class Augmentations {
                 BufferedImage crop = Scalr.crop(src, x, y, w, h);
                 rotated = Scalr.rotate(crop, rotation);
 
-                outputFile = new File(outputDir,
-                        f.getName() + "_" + x + "_" + w + "_" + y + "_" + h + "_" + rotation.name() + ".jpg");
+                String cropppedFile = f.getName() + "_" + x + "_" + w + "_" + 
+                            y + "_" + h + "_" + rotation.name() + ".jpg";
+                outputFile = new File(outputDir, cropppedFile);
                 ImageIO.write(rotated, "jpg", outputFile);
             }
         }

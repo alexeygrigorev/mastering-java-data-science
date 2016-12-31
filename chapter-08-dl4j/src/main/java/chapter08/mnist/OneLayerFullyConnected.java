@@ -7,7 +7,6 @@ import org.deeplearning4j.eval.Evaluation;
 import org.deeplearning4j.nn.api.OptimizationAlgorithm;
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration.ListBuilder;
-import org.deeplearning4j.nn.conf.Updater;
 import org.deeplearning4j.nn.conf.layers.DenseLayer;
 import org.deeplearning4j.nn.conf.layers.OutputLayer;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
@@ -26,9 +25,9 @@ public class OneLayerFullyConnected {
 
     public static void main(String[] args) throws IOException {
         int batchSize = 128;
-        int seed = 1;
         int numEpochs = 10;
 
+        int seed = 1;
         int numrow = 28;
         int numcol = 28;
 
@@ -39,11 +38,7 @@ public class OneLayerFullyConnected {
         config.seed(seed);
 
         config.optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT);
-        config.iterations(1);
-
         config.learningRate(0.005);
-
-        config.updater(Updater.SGD);
         config.regularization(true).l2(0.0001);
 
         ListBuilder architecture = config.list();
@@ -65,12 +60,8 @@ public class OneLayerFullyConnected {
 
         architecture.layer(1, outputLayer.build());
 
-        architecture.pretrain(false);
-        architecture.backprop(true);
-
         MultiLayerNetwork nn = new MultiLayerNetwork(architecture.build());
         nn.init();
-
         nn.setListeners(new ScoreIterationListener(1));
 
         LOGGER.info("training started");
@@ -87,7 +78,7 @@ public class OneLayerFullyConnected {
             eval.eval(next.getLabels(), output);
         }
 
-        LOGGER.info(eval.stats());
+        System.out.println(eval.stats());
 
     }
 }

@@ -97,7 +97,7 @@ public class TwoLayersFullyConnected {
             eval.eval(next.getLabels(), output);
         }
 
-        LOGGER.info(eval.stats());
+        System.out.println(eval.stats());
 
     }
 }

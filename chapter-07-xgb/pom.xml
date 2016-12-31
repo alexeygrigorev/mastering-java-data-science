@@ -20,11 +20,11 @@
       <id>bintray</id>
       <url>http://jcenter.bintray.com</url>
     </repository>
-        <repository>
-          <id>sonatype-shapshot</id>
-          <name>Sonatype Snapshot Repository</name>
-          <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
-        </repository>
+    <repository>
+      <id>sonatype-shapshot</id>
+      <name>Sonatype Snapshot Repository</name>
+      <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+    </repository>
   </repositories>
 
   <dependencies>

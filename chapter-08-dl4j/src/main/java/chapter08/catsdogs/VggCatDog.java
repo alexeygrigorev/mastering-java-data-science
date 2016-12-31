@@ -54,12 +54,12 @@ public class VggCatDog {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(VggCatDog.class);
 
-    private static final int seed = 1;
-    private static final int height = 128;
-    private static final int width = 128;
-    private static final int channels = 3;
-    private static final int batchSize = 30;
-    private static final int numClasses = 2;
+    private static final int SEED = 1;
+    private static final int HEIGHT = 128;
+    private static final int WIDTH = 128;
+    private static final int CHANNELS = 3;
+    private static final int BATCH_SIZE = 30;
+    private static final int NUM_CLASSES = 2;
 
     public static void main(String[] args) throws IOException {
         ensureNativeLibsAreLoaded();
@@ -97,7 +97,7 @@ public class VggCatDog {
         for (int epoch = 0; epoch < 20000; epoch++) {
             ArrayList<URI> uris = new ArrayList<>(trainUris);
             Collections.shuffle(uris);
-            List<List<URI>> partitions = Lists.partition(uris, batchSize * 20);
+            List<List<URI>> partitions = Lists.partition(uris, BATCH_SIZE * 20);
 
             for (List<URI> set : partitions) {
                 DataSetIterator trainSet = datasetIterator(set);
@@ -129,7 +129,7 @@ public class VggCatDog {
 
     private static MultiLayerNetwork createNetwork() {
         NeuralNetConfiguration.Builder config = new NeuralNetConfiguration.Builder();
-        config.seed(seed);
+        config.seed(SEED);
         config.weightInit(WeightInit.RELU);
         config.activation("relu");
 
@@ -185,17 +185,18 @@ public class VggCatDog {
 
         network.backprop(true).pretrain(false);
 
-        network.setInputType(InputType.convolutionalFlat(height, width, channels));
+        network.setInputType(InputType.convolutionalFlat(HEIGHT, WIDTH, CHANNELS));
 
-        MultiLayerNetwork model = new MultiLayerNetwork(network.build());
-        return model;
+        return new MultiLayerNetwork(network.build());
     }
 
     private static void showTrainPredictions(DataSetIterator trainSet, MultiLayerNetwork model) {
         trainSet.reset();
+
         DataSet ds = trainSet.next();
         INDArray pred = model.output(ds.getFeatureMatrix(), false).get(NDArrayIndex.all(),
                 NDArrayIndex.point(0));
+
         System.out.println("train pred: " + pred);
     }
 
@@ -243,7 +244,7 @@ public class VggCatDog {
         System.out.println();
 
         double loss = Metrics.logLoss(allActual, allPred);
-        LOGGER.info("step {} logloss: {}", epoch, loss);
+        LOGGER.info("epoch {} logloss: {}", epoch, loss);
     }
 
     private static double[] firstColumn(INDArray arr) {
@@ -265,13 +266,10 @@ public class VggCatDog {
         CollectionInputSplit train = new CollectionInputSplit(uris);
 
         PathLabelGenerator labelMaker = new FileNamePartLabelGenerator();
-        ImageRecordReader trainRecordReader = new ImageRecordReader(height, width, channels, labelMaker);
+        ImageRecordReader trainRecordReader = new ImageRecordReader(HEIGHT, WIDTH, CHANNELS, labelMaker);
         trainRecordReader.initialize(train);
 
-        RecordReaderDataSetIterator iterator = new RecordReaderDataSetIterator(trainRecordReader, batchSize, 1,
-                numClasses);
-
-        return iterator;
+        return new RecordReaderDataSetIterator(trainRecordReader, BATCH_SIZE, 1, NUM_CLASSES);
     }
 
     private static List<URI> readImages(File dir) {

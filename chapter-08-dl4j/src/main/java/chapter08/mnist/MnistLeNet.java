@@ -28,6 +28,8 @@ public class MnistLeNet {
 
     public static void main(String[] args) throws Exception {
         int nChannels = 1;
+        int height = 28;
+        int width = 28;
         int outputNum = 10;
         int batchSize = 64;
         int nEpochs = 10;
@@ -47,30 +49,52 @@ public class MnistLeNet {
         config.updater(Updater.NESTEROVS).momentum(0.9);
         ListBuilder architect = config.list();
 
-        ConvolutionLayer cnn1 = new ConvolutionLayer.Builder(5, 5).name("cnn1").nIn(nChannels).stride(1, 1)
-                .nOut(20).activation("identity").build();
+        ConvolutionLayer cnn1 = new ConvolutionLayer.Builder(5, 5)
+                .name("cnn1")
+                .nIn(nChannels)
+                .stride(1, 1)
+                .nOut(20)
+                .activation("identity")
+                .build();
         architect.layer(0, cnn1);
 
-        SubsamplingLayer pool1 = new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).name("pool1")
-                .kernelSize(2, 2).stride(2, 2).build();
+        SubsamplingLayer pool1 = new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX)
+                .name("pool1")
+                .kernelSize(2, 2)
+                .stride(2, 2)
+                .build();
         architect.layer(1, pool1);
 
-        ConvolutionLayer cnn2 = new ConvolutionLayer.Builder(5, 5).name("cnn2").stride(1, 1).nOut(50)
-                .activation("identity").build();
+        ConvolutionLayer cnn2 = new ConvolutionLayer.Builder(5, 5)
+                .name("cnn2")
+                .stride(1, 1)
+                .nOut(50)
+                .activation("identity")
+                .build();
         architect.layer(2, cnn2);
 
-        SubsamplingLayer pool2 = new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).name("pool2")
-                .kernelSize(2, 2).stride(2, 2).build();
+        SubsamplingLayer pool2 = new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX)
+                .name("pool2")
+                .kernelSize(2, 2)
+                .stride(2, 2)
+                .build();
         architect.layer(3, pool2);
 
-        DenseLayer dense1 = new DenseLayer.Builder().name("dense1").activation("relu").nOut(500).build();
+        DenseLayer dense1 = new DenseLayer.Builder()
+                .name("dense1")
+                .activation("relu")
+                .nOut(500)
+                .build();
         architect.layer(4, dense1);
 
         OutputLayer output = new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD)
-                .name("output").nOut(outputNum).activation("softmax").build();
+                .name("output")
+                .nOut(outputNum)
+                .activation("softmax")
+                .build();
         architect.layer(5, output);
 
-        architect.setInputType(InputType.convolutionalFlat(28, 28, 1));
+        architect.setInputType(InputType.convolutionalFlat(height, width, nChannels));
         architect.backprop(true).pretrain(false);
 
         MultiLayerNetwork model = new MultiLayerNetwork(architect.build());
@@ -96,6 +120,7 @@ public class MnistLeNet {
         }
 
         ModelSerializer.writeModel(model, "models/le-net.zip", true);
+
     }
 
 }
