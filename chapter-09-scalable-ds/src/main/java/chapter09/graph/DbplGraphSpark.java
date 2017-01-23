@@ -1,9 +1,6 @@
 package chapter09.graph;
 
-import java.io.File;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Arrays;
 
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
@@ -14,7 +11,6 @@ import org.apache.spark.sql.SparkSession;
 import org.graphframes.GraphFrame;
 
 import com.fasterxml.jackson.jr.ob.JSON;
-import com.google.common.collect.Lists;
 
 public class DbplGraphSpark {
 
