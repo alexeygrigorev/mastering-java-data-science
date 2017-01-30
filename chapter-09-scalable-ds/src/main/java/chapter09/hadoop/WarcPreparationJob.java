@@ -22,8 +22,12 @@ public class WarcPreparationJob extends Configured implements Tool {
     private static final Logger LOGGER = LoggerFactory.getLogger(WarcPreparationJob.class);
 
     public static void main(String[] args) throws Exception {
-        args = new String[] { "--input", "/home/agrigorev/Downloads/cc/warc", "--output",
-                "/home/agrigorev/Downloads/cc/warc-processed" };
+        if (args.length == 0) {
+            args = new String[] { 
+                "--input", "/home/agrigorev/Downloads/cc/warc", 
+                "--output", "/home/agrigorev/Downloads/cc/warc-processed" 
+            };
+        }
 
         int res = ToolRunner.run(new Configuration(), new WarcPreparationJob(), args);
         System.exit(res);
