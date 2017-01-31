@@ -1,8 +1,24 @@
 package chapter09;
 
+import java.util.Arrays;
+
 import org.apache.commons.lang3.Validate;
 
+import smile.validation.AUC;
+
 public class Metrics {
+
+    public static double auc(double[] actual, double[] predicted) {
+        Validate.isTrue(actual.length == predicted.length, "the lengths don't match");
+
+        int[] truth = Arrays.stream(actual).mapToInt(i -> (int) i).toArray();
+        double auc = AUC.measure(truth, predicted);
+        if (auc > 0.5) {
+            return auc;
+        } else {
+            return 1 - auc;
+        }
+    }
 
     public static double logLoss(double[] actual, double[] predicted) {
         return logLoss(actual, predicted, 1e-15);

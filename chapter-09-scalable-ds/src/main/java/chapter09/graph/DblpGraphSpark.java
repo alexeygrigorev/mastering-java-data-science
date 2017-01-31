@@ -3,6 +3,7 @@ package chapter09.graph;
 import java.io.File;
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
@@ -11,10 +12,11 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.ml.feature.LabeledPoint;
+import org.apache.spark.ml.linalg.DenseVector;
+import org.apache.spark.ml.linalg.Vector;
 import org.apache.spark.mllib.classification.LogisticRegressionModel;
 import org.apache.spark.mllib.classification.LogisticRegressionWithLBFGS;
-import org.apache.spark.mllib.linalg.Vector;
-import org.apache.spark.mllib.regression.LabeledPoint;
 import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
@@ -30,52 +32,218 @@ import org.graphframes.GraphFrame;
 import com.fasterxml.jackson.jr.ob.JSON;
 import com.google.common.collect.Sets;
 
+import chapter09.Metrics;
+import ml.dmlc.xgboost4j.scala.Booster;
+import ml.dmlc.xgboost4j.scala.EvalTrait;
+import ml.dmlc.xgboost4j.scala.ObjectiveTrait;
+import ml.dmlc.xgboost4j.scala.spark.XGBoost;
+import ml.dmlc.xgboost4j.scala.spark.XGBoostModel;
+import scala.Predef;
+import scala.Tuple2;
+import scala.collection.JavaConversions;
+import scala.collection.immutable.Map;
 import scala.collection.mutable.WrappedArray;
-import org.apache.spark.mllib.linalg.DenseVector;
 
 public class DblpGraphSpark {
 
     public static void main(String[] args) {
-        SparkConf conf = new SparkConf().setAppName("graph").setMaster("local[*]");
+        SparkConf conf = new SparkConf()
+                .setAppName("graph")
+                .setMaster("local[*]");
         JavaSparkContext sc = new JavaSparkContext(conf);
 
         SparkSession sql = new SparkSession(sc.sc());
 
         Dataset<Row> df = readData(sc, sql);
 
-        Dataset<Row> train = df.filter("year <= 2013");
+        Dataset<Row> trainInput = df.filter("year <= 2013");
 
-        Dataset<Row> features = calculateFeatures(sc, sql, train, "train");
+        Dataset<Row> features = calculateFeatures(sc, sql, trainInput, "train");
         features.show();
 
         features = features.drop("id", "node1", "node2");
         features = features.withColumn("rnd", functions.rand(1));
-        Dataset<Row> fold1 = features.filter("rnd >= 0.5").drop("rnd");
-        Dataset<Row> fold2 = features.filter("rnd < 0.5").drop("rnd");
 
-        fold1.show();
-        fold2.show();
+        //trainLogReg(features);
+
+        Dataset<Row> trainFeatures = features.filter("rnd <= 0.8").drop("rnd");
+        Dataset<Row> valFeatures = features.filter("rnd > 0.8").drop("rnd");
 
         List<String> columns = Arrays.asList("commonFriends", "totalFriendsApprox", 
                 "jaccard", "pagerank_mult", "pagerank_max", "pagerank_min", 
                 "pref_attachm", "degree_max", "degree_min", "same_comp");
 
-        int featureVecLen = columns.size();
-
-        JavaRDD<LabeledPoint> fold1Rdd = fold1.toJavaRDD().map(r -> {
-            double[] values = new double[featureVecLen];
-            for (int i = 0; i < featureVecLen; i++) {
-                values[i] = r.getAs(columns.get(i));
-            }
-
-            Vector vec = new DenseVector(values);
+        JavaRDD<LabeledPoint> trainRdd = trainFeatures.toJavaRDD().map(r -> {
+            Vector vec = toDenseVector(columns, r);
             double label = r.getAs("target");
             return new LabeledPoint(label, vec);
         });
 
-        LogisticRegressionModel rr = new LogisticRegressionWithLBFGS().run(JavaRDD.toRDD(fold1Rdd));
-        
-        //        Dataset<Row> test = df.filter("year >= 2014");
+        System.out.println("training a model");
+
+        trainRdd.cache();
+
+        Map<String, Object> params = xgbParams();
+
+        int nRounds = 20;
+        int numWorkers = 4;
+        ObjectiveTrait objective = null;
+
+        EvalTrait eval = null;
+        boolean externalMemoryCache = false;
+        float nanValue = Float.NaN;
+        RDD<LabeledPoint> trainData = JavaRDD.toRDD(trainRdd); 
+
+
+        XGBoostModel model = 
+                XGBoost.train(trainData, params, nRounds, numWorkers, objective, eval, externalMemoryCache, nanValue);
+
+        Booster xgb = model._booster();
+
+        JavaRDD<Pair<float[], Double>> valRdd = valFeatures.toJavaRDD().map(r -> {
+            float[] vec = rowToFloatArray(columns, r);
+            double label = r.getAs("target");
+            return ImmutablePair.of(vec, label);
+        });
+
+//        model.eval(JavaRDD.toRDD(valRdd), "auc", null, 20, false);
+//        model.eval(JavaRDD.toRDD(valRdd), "logloss", null, 20, false);
+
+    }
+
+    public static Map<String, Object> xgbParams() {
+        HashMap<String, Object> params = new HashMap<String, Object>();
+        params.put("eta", 0.3);
+        params.put("gamma", 0);
+        params.put("max_depth", 6);
+        params.put("min_child_weight", 1);
+        params.put("max_delta_step", 0);
+        params.put("subsample", 1);
+        params.put("colsample_bytree", 1);
+        params.put("colsample_bylevel", 1);
+        params.put("lambda", 1);
+        params.put("alpha", 0);
+        params.put("tree_method", "approx");
+        params.put("objective", "binary:logistic");
+        params.put("eval_metric", "logloss");
+        params.put("nthread", 1);
+        params.put("seed", 42);
+        params.put("silent", 1);
+
+        return toScala(params);
+    }
+
+    private static <K, V> Map<K, V> toScala(HashMap<K, V> params) {
+        return JavaConversions.mapAsScalaMap(params)
+                .toMap(Predef.<Tuple2<K, V>>conforms());
+    }
+
+    private static void trainLogReg(Dataset<Row> features) {
+        Dataset<Row> trainFeatures = features.filter("rnd <= 0.8").drop("rnd");
+        Dataset<Row> valFeatures = features.filter("rnd > 0.8").drop("rnd");
+
+        List<String> columns = Arrays.asList("commonFriends", "totalFriendsApprox", 
+                "jaccard", "pagerank_mult", "pagerank_max", "pagerank_min", 
+                "pref_attachm", "degree_max", "degree_min", "same_comp");
+
+        JavaRDD<org.apache.spark.mllib.regression.LabeledPoint> trainRdd = trainFeatures.toJavaRDD().map(r -> {
+                org.apache.spark.mllib.linalg.Vector vec = toDenseMllibVector(columns, r);
+            double label = r.getAs("target");
+            return new org.apache.spark.mllib.regression.LabeledPoint(label, vec);
+        });
+
+        LogisticRegressionModel logreg = new LogisticRegressionWithLBFGS()
+                    .run(JavaRDD.toRDD(trainRdd));
+
+        System.out.println("predicting...");
+        logreg.clearThreshold();
+
+        JavaRDD<Pair<Double, Double>> predRdd = valFeatures.toJavaRDD().map(r -> {
+            org.apache.spark.mllib.linalg.Vector v = toDenseMllibVector(columns, r);
+            double label = r.getAs("target");
+
+            double predict = logreg.predict(v);
+
+            return ImmutablePair.of(label, predict);
+        });
+
+        List<Pair<Double, Double>> pred = predRdd.collect();
+        pred.subList(0, 10).forEach(System.out::println);
+
+        double[] actual = pred.stream().mapToDouble(Pair::getLeft).toArray();
+        double[] predicted = pred.stream().mapToDouble(Pair::getRight).toArray();
+
+        double logLoss = Metrics.logLoss(actual, predicted);
+        System.out.printf("log loss: %.4f%n", logLoss);
+
+        double auc = Metrics.auc(actual, predicted);
+        System.out.printf("auc: %.4f%n", auc);
+    }
+
+    private static DenseVector toDenseVector(List<String> columns, Row r) {
+        double[] values = rowToDoubleArray(columns, r);
+        return new DenseVector(values);
+    }
+
+    private static double[] rowToDoubleArray(List<String> columns, Row r) {
+        int featureVecLen = columns.size();
+        double[] values = new double[featureVecLen];
+        for (int i = 0; i < featureVecLen; i++) {
+            Object o = r.getAs(columns.get(i));
+            values[i] = castToDouble(o);
+        }
+        return values;
+    }
+
+    private static float[] rowToFloatArray(List<String> columns, Row r) {
+        int featureVecLen = columns.size();
+        float[] values = new float[featureVecLen];
+        for (int i = 0; i < featureVecLen; i++) {
+            Object o = r.getAs(columns.get(i));
+            values[i] = castToFloat(o);
+        }
+        return values;
+    }
+
+    private static float castToFloat(Object o) {
+        if (o instanceof Number) {
+            Number number = (Number) o;
+            return number.floatValue();
+        }
+
+        if (o instanceof Boolean) {
+            Boolean bool = (Boolean) o;
+            if (bool) {
+                return 1.0f;
+            } else {
+                return 0.0f;
+            }
+        }
+
+        throw new IllegalArgumentException("cannot cast " + o.getClass() + " to float");
+    }
+
+    private static org.apache.spark.mllib.linalg.Vector toDenseMllibVector(List<String> columns, Row r) {
+        double[] values = rowToDoubleArray(columns, r);
+        return new org.apache.spark.mllib.linalg.DenseVector(values);
+    }
+
+    private static double castToDouble(Object o) {
+        if (o instanceof Number) {
+            Number number = (Number) o;
+            return number.doubleValue();
+        }
+
+        if (o instanceof Boolean) {
+            Boolean bool = (Boolean) o;
+            if (bool) {
+                return 1.0;
+            } else {
+                return 0.0;
+            }
+        }
+
+        throw new IllegalArgumentException("cannot cast " + o.getClass() + " to double");
     }
 
     private static Dataset<Row> readData(JavaSparkContext sc, SparkSession sql) {
