@@ -1,13 +1,13 @@
 package chapter09.hadoop;
 
+import java.net.URI;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Counters;
+import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
@@ -17,21 +17,20 @@ import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import chapter09.hadoop.DocumentFrequencyMapper.Counter;
+public class IdfJob extends Configured implements Tool {
 
-public class DocumentFrequencyJob extends Configured implements Tool {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(DocumentFrequencyJob.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(IdfJob.class);
 
     public static void main(String[] args) throws Exception {
         if (args.length == 0) {
             args = new String[] { 
                 "--input", "/home/agrigorev/Downloads/cc/warc-processed", 
-                "--output", "/home/agrigorev/Downloads/cc/warc-df" 
+                "--df-input", "/home/agrigorev/Downloads/cc/warc-df",
+                "--output", "/home/agrigorev/Downloads/cc/warc-tf-idf"
             };
         }
 
-        int res = ToolRunner.run(new Configuration(), new DocumentFrequencyJob(), args);
+        int res = ToolRunner.run(new Configuration(), new IdfJob(), args);
         System.exit(res);
     }
 
@@ -45,31 +44,32 @@ public class DocumentFrequencyJob extends Configured implements Tool {
         job.setJarByClass(this.getClass());
 
         Path inputPath = new Path(params.get("--input"));
+        Path dfInputPath = new Path(params.get("--df-input"));
         Path outputPath = new Path(params.get("--output"));
 
         LOGGER.info("Input path: {}", inputPath);
         FileInputFormat.addInputPath(job, inputPath);
 
         TextOutputFormat.setOutputPath(job, outputPath);
+        TextOutputFormat.setCompressOutput(job, true);
+        TextOutputFormat.setOutputCompressorClass(job, GzipCodec.class);
 
         job.setInputFormatClass(TextInputFormat.class);
         job.setOutputFormatClass(TextOutputFormat.class);
 
         job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(LongWritable.class);
+        job.setOutputValueClass(Text.class);
 
-        job.setMapperClass(DocumentFrequencyMapper.class);
-        job.setCombinerClass(DocumentFrequencyReducer.class);
-        job.setReducerClass(DocumentFrequencyReducer.class);
+        job.setMapperClass(IdfMapper.class);
+        job.setNumReduceTasks(0);
+
+        job.addCacheFile(new URI(dfInputPath.toUri() + "#df"));
 
         if (job.waitForCompletion(true)) {
-            Counters counters = job.getCounters();
-            long count = counters.findCounter(Counter.DOCUMENTS).getValue();
-            System.out.println("processed " + count + " documents");
-
             return 0;
         } else {
             return 1;
         }
     }
+
 }

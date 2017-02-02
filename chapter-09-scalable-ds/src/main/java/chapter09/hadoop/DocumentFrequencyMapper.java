@@ -1,16 +1,19 @@
 package chapter09.hadoop;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
+import com.google.common.collect.Sets;
+
 public class DocumentFrequencyMapper extends Mapper<LongWritable, Text, Text, LongWritable> {
+
+    public static enum Counter {
+        DOCUMENTS;
+    }
 
     private Text outToken = new Text();
     private LongWritable one = new LongWritable(1);
@@ -21,13 +24,13 @@ public class DocumentFrequencyMapper extends Mapper<LongWritable, Text, Text, Lo
         String[] split = doc.split("\t");
 
         String joinedTokens = split[1];
-        List<String> tokens = Arrays.asList(joinedTokens.split(" "));
+        Set<String> tokens = Sets.newHashSet(joinedTokens.split(" "));
 
-        Set<String> distinct = new HashSet<>(tokens); 
-
-        for (String token : distinct) {
+        for (String token : tokens) {
             outToken.set(token);
             context.write(outToken, one);
         }
+
+        context.getCounter(Counter.DOCUMENTS).increment(1);
     }
 }

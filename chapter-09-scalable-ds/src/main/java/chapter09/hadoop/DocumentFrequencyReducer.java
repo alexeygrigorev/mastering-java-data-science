@@ -18,7 +18,7 @@ public class DocumentFrequencyReducer extends Reducer<Text, LongWritable, Text, 
             sum = sum + cnt.get();
         }
 
-        if (sum > 50) {
+        if (sum > 100) {
             out.set(sum);
             context.write(key, out);
         }
