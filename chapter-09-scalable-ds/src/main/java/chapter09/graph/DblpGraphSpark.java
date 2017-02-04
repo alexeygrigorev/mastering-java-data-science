@@ -2,14 +2,17 @@ package chapter09.graph;
 
 import java.io.File;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.ml.feature.LabeledPoint;
@@ -30,9 +33,12 @@ import org.apache.spark.sql.types.StructType;
 import org.graphframes.GraphFrame;
 
 import com.fasterxml.jackson.jr.ob.JSON;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 
 import chapter09.Metrics;
+import ml.dmlc.xgboost4j.java.DMatrix;
+import ml.dmlc.xgboost4j.java.XGBoostError;
 import ml.dmlc.xgboost4j.scala.Booster;
 import ml.dmlc.xgboost4j.scala.EvalTrait;
 import ml.dmlc.xgboost4j.scala.ObjectiveTrait;
@@ -46,7 +52,7 @@ import scala.collection.mutable.WrappedArray;
 
 public class DblpGraphSpark {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         SparkConf conf = new SparkConf()
                 .setAppName("graph")
                 .setMaster("local[*]");
@@ -56,7 +62,161 @@ public class DblpGraphSpark {
 
         Dataset<Row> df = readData(sc, sql);
 
-        Dataset<Row> trainInput = df.filter("year <= 2013");
+        Booster xgb = trainXgbModel(sc, sql, df);
+
+        Pair<Dataset<Row>, Dataset<Row>> graph = prepareGraph(sql, null, "train");
+        Dataset<Row> nodes = graph.getLeft();
+        Dataset<Row> edges = graph.getRight();
+
+        Dataset<Row> selected = selectValEdges(sql, df, nodes);
+
+        Dataset<Row> valFeatures = prepareValFeatures(sql, edges, selected);
+
+        JavaRDD<ScoredEdge> scoredRdd = scoreValidation(xgb, valFeatures);
+
+        JavaPairRDD<Long, List<ScoredEdge>> topSuggestions = scoredRdd
+                .keyBy(s -> s.getNode1())
+                .groupByKey()
+                .mapValues(es -> takeFirst10(es));
+
+        topSuggestions.take(10).forEach(System.out::println);
+
+        double mean = topSuggestions.mapToDouble(es -> {
+            List<ScoredEdge> es2 = es._2();
+            double correct = es2.stream().filter(e -> e.getTarget() == 1.0).count();
+            return correct / es2.size();
+        }).mean();
+
+        System.out.println(mean);
+
+    }
+
+    private static List<ScoredEdge> takeFirst10(Iterable<ScoredEdge> es) {
+        Ordering<ScoredEdge> byScore = Ordering.natural().onResultOf(ScoredEdge::getScore).reverse();
+        return byScore.leastOf(es, 10);
+    }
+
+    private static JavaRDD<ScoredEdge> scoreValidation(Booster xgb, Dataset<Row> valFeatures) {
+        List<String> columns = Arrays.asList("commonFriends", "totalFriendsApprox", 
+                "jaccard", "pagerank_mult", "pagerank_max", "pagerank_min", 
+                "pref_attachm", "degree_max", "degree_min", "same_comp");
+
+        JavaRDD<ScoredEdge> scoredEdgesRdd = valFeatures.toJavaRDD().mapPartitions(rows -> {
+            List<ScoredEdge> scoredEdges = new ArrayList<>();
+            List<ml.dmlc.xgboost4j.LabeledPoint> dml = new ArrayList<>();
+            while (rows.hasNext()) {
+                Row r = rows.next();
+
+                long node1 = r.getAs("node1");
+                long node2 = r.getAs("node2");
+                double target = r.getAs("target");
+
+                scoredEdges.add(new ScoredEdge(node1, node2, target));
+
+                float[] vec = rowToFloatArray(columns, r);
+                dml.add(ml.dmlc.xgboost4j.LabeledPoint.fromDenseVector(0.0f, vec));
+            }
+
+            DMatrix data = new DMatrix(dml.iterator(), null);
+            float[][] xgbPred = xgb.predict(new ml.dmlc.xgboost4j.scala.DMatrix(data), false, 20);
+
+            for (int i = 0; i < scoredEdges.size(); i++) {
+                double pred = xgbPred[i][0];
+                ScoredEdge edge = scoredEdges.get(i);
+                edge.setScore(pred);
+            }
+
+            return scoredEdges.iterator();
+        });
+
+        return scoredEdgesRdd;
+    }
+
+    private static Dataset<Row> selectValEdges(SparkSession sql, Dataset<Row> df, Dataset<Row> nodes) {
+        File parquet = new File("tmp/val_selected_edges.parquet");
+        if (parquet.exists()) {
+            System.out.println("reading selected edges from " + parquet);
+            return sql.read().parquet(parquet.getAbsolutePath());
+        } 
+
+        Dataset<Row> test = df.filter("year >= 2014");
+        Dataset<Row> valNodes = test.sample(true, 0.05, 1).select("node1").dropDuplicates();
+        Dataset<Row> valEdges = test.join(valNodes, "node1");
+
+
+        Dataset<Row> join = valEdges.drop("year");
+
+        join = join.join(nodes, join.col("node1").equalTo(nodes.col("node")));
+        join = join.drop("node", "node1").withColumnRenamed("id", "node1");
+
+        join = join.join(nodes, join.col("node2").equalTo(nodes.col("node")));
+        join = join.drop("node", "node2").withColumnRenamed("id", "node2");
+
+        System.out.println(join.count());
+        join.write().parquet(parquet.getAbsolutePath());
+        return join;
+    }
+
+    private static Dataset<Row> prepareValFeatures(SparkSession sql, Dataset<Row> edges, Dataset<Row> selected) {
+        File parquet = new File("tmp/val_features.parquet");
+        if (parquet.exists()) {
+            System.out.println("reading val features from " + parquet);
+            return sql.read().parquet(parquet.getAbsolutePath());
+        } 
+
+        Dataset<Row> e1 = selected.select("node1").dropDuplicates();
+
+        Dataset<Row> e2 = edges.drop("node1", "node2", "year")
+                .withColumnRenamed("src", "e2_src")
+                .withColumnRenamed("dst", "e2_dst")
+                .as("e2");
+
+        Column diffDest = e1.col("node1").notEqual(e2.col("e2_dst"));
+        Column sameSrc = e1.col("node1").equalTo(e2.col("e2_src"));
+        Dataset<Row> candidates = e1.join(e2, diffDest.and(sameSrc));
+        candidates = candidates.select("node1", "e2_dst").withColumnRenamed("e2_dst", "node2");
+
+        candidates = candidates.withColumn("target", functions.lit(0.0));
+
+        selected = selected.withColumn("target", functions.lit(1.0));
+
+        candidates = selected.union(candidates).dropDuplicates("node1", "node2");
+
+        candidates = candidates.withColumn("id", functions.monotonicallyIncreasingId());
+
+        Dataset<Row> commonFriends = calculateCommonFriends(sql, "val", edges, candidates);
+        Dataset<Row> totalFriends = calculateTotalFriends(sql, "val", edges, candidates);
+
+        Dataset<Row> jaccard = calculateJaccard(sql, "val", edges, candidates);
+
+        Dataset<Row> pageRank = pageRank(sql, "train", null);
+        Dataset<Row> connectedComponents = connectedComponents(sql, "train", null);
+        Dataset<Row> degrees = degrees(sql, "train", null);
+
+        Dataset<Row> nodeFeatures = nodeFeatures(sql, pageRank, connectedComponents, degrees, candidates, "val");
+
+        Dataset<Row> joinF = candidates.join(commonFriends, "id")
+                .join(totalFriends, "id")
+                .join(jaccard, "id")
+                .join(nodeFeatures, "id");
+
+        joinF.show();
+        joinF.write().parquet(parquet.getAbsolutePath());
+        return joinF;
+    }
+
+    private static Booster trainXgbModel(JavaSparkContext sc, SparkSession sql, Dataset<Row> all)
+            throws XGBoostError {
+        File xgbModelFile = new File("link_pred_model_xgb.bin");
+        if (xgbModelFile.exists()) {
+            System.out.println("the model exists, loading it...");
+            ml.dmlc.xgboost4j.java.Booster model = ml.dmlc.xgboost4j.java.XGBoost.loadModel(xgbModelFile.getName());
+            return new Booster(model);
+        }
+
+        Dataset<Row> trainInput = all.filter("year <= 2013");
+
+        System.out.println("training the xgb model...");
 
         Dataset<Row> features = calculateFeatures(sc, sql, trainInput, "train");
         features.show();
@@ -94,21 +254,74 @@ public class DblpGraphSpark {
         float nanValue = Float.NaN;
         RDD<LabeledPoint> trainData = JavaRDD.toRDD(trainRdd); 
 
-
         XGBoostModel model = 
-                XGBoost.train(trainData, params, nRounds, numWorkers, objective, eval, externalMemoryCache, nanValue);
+                XGBoost.train(trainData, params, nRounds, numWorkers, 
+                        objective, eval, externalMemoryCache, nanValue);
 
         Booster xgb = model._booster();
 
-        JavaRDD<Pair<float[], Double>> valRdd = valFeatures.toJavaRDD().map(r -> {
+        JavaRDD<ml.dmlc.xgboost4j.LabeledPoint> valRdd = valFeatures.toJavaRDD().map(r -> {
             float[] vec = rowToFloatArray(columns, r);
             double label = r.getAs("target");
-            return ImmutablePair.of(vec, label);
+            return ml.dmlc.xgboost4j.LabeledPoint.fromDenseVector((float)label, vec);
         });
 
-//        model.eval(JavaRDD.toRDD(valRdd), "auc", null, 20, false);
-//        model.eval(JavaRDD.toRDD(valRdd), "logloss", null, 20, false);
 
+        List<ml.dmlc.xgboost4j.LabeledPoint> valPoints = valRdd.collect();
+        DMatrix data = new DMatrix(valPoints.iterator(), null);
+
+
+        float[][] xgbPred = xgb.predict(new ml.dmlc.xgboost4j.scala.DMatrix(data), false, 20);
+
+        double[] actual = floatToDouble(data.getLabel());
+        double[] predicted = unwrapToDouble(xgbPred);
+
+        new Random(0).ints(100, 0, actual.length).forEach(i -> {
+            System.out.printf("actual %.1f, pred %.4f%n", actual[i], predicted[i]);
+        });
+
+        double logLoss = Metrics.logLoss(actual, predicted);
+        System.out.printf("log loss: %.4f%n", logLoss);
+
+        double auc = Metrics.auc(actual, predicted);
+        System.out.printf("auc: %.4f%n", auc);
+
+        System.out.println("training full model");
+
+        JavaRDD<LabeledPoint> fullRdd = features.toJavaRDD().map(r -> {
+            Vector vec = toDenseVector(columns, r);
+            double label = r.getAs("target");
+            return new LabeledPoint(label, vec);
+        });
+
+        trainData = JavaRDD.toRDD(fullRdd);
+
+        XGBoostModel modelFull = 
+                XGBoost.train(trainData, params, nRounds, numWorkers, 
+                        objective, eval, externalMemoryCache, nanValue);
+
+        Booster xgbFull = modelFull._booster();
+        xgbFull.saveModel(xgbModelFile.getName());
+
+        return xgbFull;
+    }
+
+    private static double[] floatToDouble(float[] floats) {
+        double[] result = new double[floats.length];
+        for (int i = 0; i < floats.length; i++) {
+            result[i] = floats[i];
+        }
+        return result;
+
+    }
+
+    public static double[] unwrapToDouble(float[][] floatResults) {
+        int n = floatResults.length;
+        double[] result = new double[n];
+        for (int i = 0; i < n; i++) {
+            result[i] = floatResults[i][0];
+        }
+        return result;
     }
 
     public static Map<String, Object> xgbParams() {
@@ -138,6 +351,7 @@ public class DblpGraphSpark {
                 .toMap(Predef.<Tuple2<K, V>>conforms());
     }
 
+    @SuppressWarnings("unused")
     private static void trainLogReg(Dataset<Row> features) {
         Dataset<Row> trainFeatures = features.filter("rnd <= 0.8").drop("rnd");
         Dataset<Row> valFeatures = features.filter("rnd > 0.8").drop("rnd");
@@ -321,17 +535,18 @@ public class DblpGraphSpark {
         Dataset<Row> train = trainEdges(sql, df, datasetType, nodes, edges);
         train.show();
 
+        Dataset<Row> nodeFeatures = nodeFeatures(sql, pageRank, connectedComponents, degrees, train, datasetType);
+        nodeFeatures.show();
+
         Dataset<Row> commonFriends = calculateCommonFriends(sql, datasetType, edges, train);
         commonFriends.show();
 
         Dataset<Row> totalFriends = calculateTotalFriends(sql, datasetType, edges, train);
         totalFriends.show();
 
-        Dataset<Row> jaccard = calculateJaccard(sql, edges, train, datasetType);
+        Dataset<Row> jaccard = calculateJaccard(sql, datasetType, edges, train);
         jaccard.show();
 
-        Dataset<Row> nodeFeatures = nodeFeatures(sql, pageRank, connectedComponents, degrees, train, datasetType);
-        nodeFeatures.show();
 
          Dataset<Row> join = train.join(commonFriends, "id")
              .join(totalFriends, "id")
@@ -388,7 +603,7 @@ public class DblpGraphSpark {
         return join;
     }
 
-    private static Dataset<Row> calculateJaccard(SparkSession sql, Dataset<Row> edges, Dataset<Row> train, String datasetType) {
+    private static Dataset<Row> calculateJaccard(SparkSession sql, String datasetType, Dataset<Row> edges, Dataset<Row> train) {
         File jaccardParquet = new File("tmp/jaccard_" + datasetType + ".parquet");
 
         if (jaccardParquet.exists()) {
