@@ -15,7 +15,7 @@ import com.google.common.collect.Ordering;
 
 import ml.dmlc.xgboost4j.scala.Booster;
 
-public class DblpGraphSpark {
+public class LinkPredictionSpark {
 
     public static void main(String[] args) throws Exception {
         SparkConf conf = new SparkConf().setAppName("graph").setMaster("local[*]");
