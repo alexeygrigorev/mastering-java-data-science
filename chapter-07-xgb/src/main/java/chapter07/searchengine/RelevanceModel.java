@@ -21,6 +21,7 @@ import chapter07.cv.Dataset;
 import chapter07.xgb.JoineryUtils;
 import chapter07.xgb.XgbUtils;
 import joinery.DataFrame;
+import ml.dmlc.xgboost4j.java.Booster;
 import ml.dmlc.xgboost4j.java.DMatrix;
 import ml.dmlc.xgboost4j.java.IEvaluation;
 import ml.dmlc.xgboost4j.java.IObjective;
@@ -46,7 +47,7 @@ public class RelevanceModel {
         params.put("subsample", 0.7);
         params.put("eta", 0.02);
 
-        int nrounds = 500;
+        int nrounds = 175;
 
         DMatrix dtrain = XgbUtils.wrapData(trainDataset);
         int[] trainGroups = queryGroups(trainFeatures.col("queryId"));
@@ -61,7 +62,8 @@ public class RelevanceModel {
         IObjective obj = null;
         IEvaluation eval = null;
 
-        XGBoost.train(dtrain, params, nrounds, watches, obj, eval);
+        Booster booster = XGBoost.train(dtrain, params, nrounds, watches, obj, eval);
+        booster.saveModel("project/xgb_model.bin");
 
     }
 
