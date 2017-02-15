@@ -20,7 +20,7 @@ public class XgbRanker implements Ranker {
     }
 
     @Override
-    public List<QueryDocumentPair> rank(List<QueryDocumentPair> inputList) throws Exception {
+    public SearchResults rank(List<QueryDocumentPair> inputList) throws Exception {
         DataFrame<Double> featuresDf = featureExtractor.transform(inputList);
         double[][] matrix = featuresDf.toModelMatrix(0.0);
 
@@ -33,7 +33,7 @@ public class XgbRanker implements Ranker {
             result.add(doc);
         }
 
-        return result;
+        return SearchResults.wrap("xgb", result);
     }
 
 }

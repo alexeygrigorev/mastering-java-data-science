@@ -8,10 +8,8 @@
     </encoder>
   </appender>
 
-  <root level="debug">
+  <root level="info">
     <appender-ref ref="STDOUT" />
   </root>
-
-  <logger name="smile" level="WARN"/>
 
 </configuration>

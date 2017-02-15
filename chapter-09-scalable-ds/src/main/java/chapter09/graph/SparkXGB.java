@@ -38,7 +38,7 @@ public class SparkXGB {
 
     public static Booster train(JavaSparkContext sc, SparkSession sql, Dataset<Row> features)
             throws XGBoostError {
-        File xgbModelFile = new File("link_pred_model_xgb.bin");
+        File xgbModelFile = new File("tmp/link_pred_model_xgb.bin");
         if (xgbModelFile.exists()) {
             System.out.println("the model exists, loading it...");
             ml.dmlc.xgboost4j.java.Booster model = ml.dmlc.xgboost4j.java.XGBoost.loadModel(xgbModelFile.getName());

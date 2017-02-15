@@ -6,6 +6,6 @@ import chapter07.searchengine.PrepareData.QueryDocumentPair;
 
 public interface Ranker {
 
-    List<QueryDocumentPair> rank(List<QueryDocumentPair> inputList) throws Exception;
+    SearchResults rank(List<QueryDocumentPair> inputList) throws Exception;
 
 }
