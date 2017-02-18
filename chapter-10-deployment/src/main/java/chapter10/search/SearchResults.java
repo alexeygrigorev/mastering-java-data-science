@@ -55,6 +55,4 @@ public class SearchResults {
         this.list = list;
     }
 
-
-
 }

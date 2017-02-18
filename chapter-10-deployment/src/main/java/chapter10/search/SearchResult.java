@@ -1,9 +1,6 @@
 package chapter10.search;
 
-import java.util.UUID;
-
 public class SearchResult {
-
 
     private String url;
     private String title;
@@ -27,22 +24,6 @@ public class SearchResult {
 
     public void setTitle(String title) {
         this.title = title;
-    }
-
-    public String getUuid() {
-        return uuid;
-    }
-
-    public void setUuid(String uuid) {
-        this.uuid = uuid;
-    }
-    
-    public String getGeneratedBy() {
-        return generatedBy;
-    }
-
-    public void setGeneratedBy(String generatedBy) {
-        this.generatedBy = generatedBy;
     }
 
     @Override

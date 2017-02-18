@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/")
 public class SearchController {
 
-    private SearchEngineService service;
+    private final SearchEngineService service;
 
     @Autowired
     public SearchController(SearchEngineService service) {
@@ -26,8 +26,8 @@ public class SearchController {
         return service.search(query);
     }
 
-    @RequestMapping("f/{uuid}")
-    public void contentOpt(@PathVariable("uuid") String uuid) throws Exception {
-        service.registerClick(uuid);
-    }
+//    @RequestMapping("f/{uuid}")
+//    public void contentOpt(@PathVariable("uuid") String uuid) throws Exception {
+//        service.registerClick(uuid);
+//    }
 }

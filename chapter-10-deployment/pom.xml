@@ -150,9 +150,8 @@
     </dependency>
 
     <dependency>
-      <artifactId>jackson-datatype-guava</artifactId>
-      <groupId>com.fasterxml.jackson.datatype</groupId>
-      <version>2.6.3</version>
+      <artifactId>jackson-databind</artifactId>
+      <groupId>com.fasterxml.jackson.core</groupId>
     </dependency>
 
     <!-- Tests -->
