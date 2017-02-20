@@ -16,18 +16,14 @@ public class SearchController {
         this.service = service;
     }
 
-//    @RequestMapping("q/{query}")
-//    public List<SearchResult> contentOpt(@PathVariable("query") String query) throws Exception {
-//        return service.search(query);
-//    }
-
     @RequestMapping("q/{query}")
     public SearchResults contentOpt(@PathVariable("query") String query) throws Exception {
         return service.search(query);
     }
 
-//    @RequestMapping("f/{uuid}")
-//    public void contentOpt(@PathVariable("uuid") String uuid) throws Exception {
-//        service.registerClick(uuid);
-//    }
+    @RequestMapping("click/{algorithm}/{uuid}")
+    public void click(@PathVariable("algorithm") String algorithm, 
+            @PathVariable("uuid") String uuid) throws Exception {
+        service.registerClick(algorithm, uuid);
+    }
 }

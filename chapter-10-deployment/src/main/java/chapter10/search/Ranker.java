@@ -8,4 +8,6 @@ public interface Ranker {
 
     SearchResults rank(List<QueryDocumentPair> inputList) throws Exception;
 
+    String name();
+
 }

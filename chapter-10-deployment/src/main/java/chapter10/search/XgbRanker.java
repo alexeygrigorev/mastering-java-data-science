@@ -11,6 +11,8 @@ import ml.dmlc.xgboost4j.java.XGBoost;
 
 public class XgbRanker implements Ranker {
 
+    private static final String NAME = "xgb";
+
     private final FeatureExtractor featureExtractor;
     private final Booster booster;
 
@@ -33,7 +35,12 @@ public class XgbRanker implements Ranker {
             result.add(doc);
         }
 
-        return SearchResults.wrap("xgb", result);
+        return SearchResults.wrap(NAME, result);
+    }
+
+    @Override
+    public String name() {
+        return NAME;
     }
 
 }

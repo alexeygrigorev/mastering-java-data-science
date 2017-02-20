@@ -2,9 +2,11 @@ package chapter10.search;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.collect.ConcurrentHashMultiset;
@@ -23,6 +25,8 @@ public class BanditRanker implements FeedbackRanker {
     private final Multiset<String> counts = ConcurrentHashMultiset.create();
     private final AtomicLong count = new AtomicLong();
     private final Random random;
+
+    private final Set<Integer> explorationResults = new HashSet<>();
 
     public BanditRanker(Map<String, Ranker> rankers, double epsilon, long seed) {
         this.rankers = rankers;
@@ -62,12 +66,21 @@ public class BanditRanker implements FeedbackRanker {
         int idx = random.nextInt(rankerNames.size());
         String rankerName = rankerNames.get(idx);
         Ranker ranker = rankers.get(rankerName);
-        return ranker.rank(inputList);
+        SearchResults results = ranker.rank(inputList);
+        explorationResults.add(results.getUuid().hashCode());
+        return results;
     }
 
     @Override
     public void registerClick(String algorithm, String uuid) {
-        counts.add(algorithm);
+        if (explorationResults.contains(uuid.hashCode())) {
+            counts.add(algorithm);
+        }
+    }
+
+    @Override
+    public String name() {
+        throw new UnsupportedOperationException();
     }
 
 }

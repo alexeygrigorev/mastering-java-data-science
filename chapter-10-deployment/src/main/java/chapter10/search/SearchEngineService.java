@@ -17,12 +17,12 @@ import chapter07.searchengine.PrepareData.QueryDocumentPair;
 public class SearchEngineService {
 
     private final IndexSearcher searcher;
-    private final Ranker ranker;
+    private final FeedbackRanker ranker;
 
     private final WhitespaceAnalyzer analyzer = new WhitespaceAnalyzer();
     private final AnalyzingQueryParser parser = new AnalyzingQueryParser("bodyText", analyzer);
 
-    public SearchEngineService(IndexSearcher searcher, Ranker ranker) {
+    public SearchEngineService(IndexSearcher searcher, FeedbackRanker ranker) {
         this.searcher = searcher;
         this.ranker = ranker;
     }
@@ -58,9 +58,8 @@ public class SearchEngineService {
         return data;
     }
 
-    public void registerClick(String uuid) {
-        // TODO Auto-generated method stub
-        
+    public void registerClick(String algorithm, String uuid) {
+        ranker.registerClick(algorithm, uuid);
     }
 
 }
